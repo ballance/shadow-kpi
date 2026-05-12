@@ -76,7 +76,7 @@ user
   id, email (unique), display_name, created_at
 
 membership
-  user_id, team_id, joined_at, role ('member' | 'admin')
+  user_id, team_id, joined_at
   PK (user_id, team_id)
 
 market
@@ -130,8 +130,6 @@ Bets are debited from allowance first, holdings second. Payouts (`kind='payout'`
 - `market (team_id, status, lockup_at)`
 - `notification (user_id, read_at)`
 - `team (invite_code)`
-
-**Role field note:** `membership.role` exists but the only admin power in v1 is rotating the team invite code. Open question for the user during review: keep `role` or rip it out and let any member rotate.
 
 ## Key flows
 
@@ -387,7 +385,7 @@ shadow-kpi/
 
 ## v1 feature list (locked)
 
-- Create team via invite code; join via code; rotate code (admin).
+- Create team via invite code; join via code; any member can rotate the code.
 - Email + display name signup; magic-link login.
 - Create binary market with `lockup_at` and `resolves_at`.
 - Place bet (integer ≥ 1) before lockup; creator cannot bet on own market.
@@ -414,6 +412,3 @@ shadow-kpi/
 - Rate limiting and abuse controls.
 - Structured logging and alerting.
 
-## Open questions for user
-
-1. Keep `membership.role` ('member' | 'admin') for invite-code rotation, or remove it and let any member rotate?
