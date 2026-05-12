@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: shadowkpi-postgres
+    environment:
+      POSTGRES_USER: shadowkpi
+      POSTGRES_PASSWORD: shadowkpi
+      POSTGRES_DB: shadowkpi
+    ports:
+      - '5432:5432'
+    volumes:
+      - shadowkpi-pg-data:/var/lib/postgresql/data
+
+volumes:
+  shadowkpi-pg-data:
