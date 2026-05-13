@@ -1,6 +1,6 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { Db } from '@/server/db/client';
-import { markets, memberships, type Market } from '@/server/db/schema';
+import { markets, memberships, bets as betsTable, type Market, type Bet } from '@/server/db/schema';
 import { DomainError } from '@/server/errors';
 import { eventBus } from '@/server/events';
 import { now } from '@/server/time';
@@ -61,4 +61,51 @@ export async function createMarket(db: Db, input: CreateMarketInput): Promise<Ma
   });
 
   return created;
+}
+
+export type MarketStatus = 'open' | 'locked' | 'resolved' | 'voided';
+
+export async function listMarketsForTeam(
+  db: Db,
+  teamId: string,
+  status?: MarketStatus,
+): Promise<Market[]> {
+  const whereClause = status
+    ? and(eq(markets.teamId, teamId), eq(markets.status, status))
+    : eq(markets.teamId, teamId);
+  return await db
+    .select()
+    .from(markets)
+    .where(whereClause)
+    .orderBy(desc(markets.createdAt));
+}
+
+export interface MarketDetail {
+  market: Market;
+  pools: { yes: number; no: number };
+  bets: Bet[];
+}
+
+export async function getMarketDetail(
+  db: Db,
+  marketId: string,
+): Promise<MarketDetail | null> {
+  const [market] = await db.select().from(markets).where(eq(markets.id, marketId)).limit(1);
+  if (!market) return null;
+
+  const allBets = await db
+    .select()
+    .from(betsTable)
+    .where(eq(betsTable.marketId, marketId));
+
+  const pools = allBets.reduce(
+    (acc, b) => {
+      if (b.side === 'yes') acc.yes += b.amount;
+      else acc.no += b.amount;
+      return acc;
+    },
+    { yes: 0, no: 0 },
+  );
+
+  return { market, pools, bets: allBets };
 }
