@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, lte, sql } from 'drizzle-orm';
 import type { Db } from '@/server/db/client';
 import {
   markets,
@@ -211,4 +211,25 @@ export async function resolveMarket(
   });
 
   return updated;
+}
+
+export interface LockSweepResult {
+  lockedIds: string[];
+}
+
+export async function lockExpiredMarkets(db: Db): Promise<LockSweepResult> {
+  const result = await db
+    .update(markets)
+    .set({ status: 'locked' })
+    .where(and(eq(markets.status, 'open'), lte(markets.lockupAt, now())))
+    .returning({ id: markets.id, teamId: markets.teamId });
+
+  for (const row of result) {
+    await eventBus.emit({
+      type: 'MarketLocked',
+      marketId: row.id,
+      teamId: row.teamId,
+    });
+  }
+  return { lockedIds: result.map((r) => r.id) };
 }
