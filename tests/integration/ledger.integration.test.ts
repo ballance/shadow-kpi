@@ -3,10 +3,11 @@ import { startTestDb, type TestDbHandle } from '../helpers/db';
 import {
   getBalance,
   getSpendableAllowance,
+  getSpendableAllowanceForWeek,
   grantInitialAllowance,
   WEEKLY_ALLOWANCE,
 } from '@/server/ledger';
-import { users, teams, ledgerEntries } from '@/server/db/schema';
+import { users, teams, ledgerEntries, bets, markets } from '@/server/db/schema';
 import { __setNowForTests } from '@/server/time';
 
 describe('ledger', () => {
@@ -135,6 +136,133 @@ describe('ledger', () => {
         },
       ]);
       expect(await getSpendableAllowance(handle.db, { userId, teamId })).toBe(12);
+    });
+
+    it('adds back refund-of-this-week-stake (restoring allowance)', async () => {
+      __setNowForTests(new Date('2026-05-13T12:00:00Z'));
+      await handle.db.insert(users).values({ id: 'creator', email: 'c@example.com' });
+      await handle.db.insert(markets).values({
+        id: 'm1',
+        teamId,
+        creatorId: 'creator',
+        title: 'voided',
+        description: null,
+        lockupAt: new Date('2026-05-20T00:00:00Z'),
+        resolvesAt: new Date('2026-05-21T00:00:00Z'),
+        status: 'voided',
+      });
+      await handle.db.insert(bets).values({
+        id: 'b1',
+        marketId: 'm1',
+        userId,
+        side: 'yes',
+        amount: 5,
+        placedAt: new Date('2026-05-12T10:00:00Z'),
+      });
+      await handle.db.insert(ledgerEntries).values([
+        {
+          userId,
+          teamId,
+          kind: 'allowance_grant',
+          amount: 12,
+          createdAt: new Date('2026-05-11T00:00:00Z'),
+        },
+        {
+          userId,
+          teamId,
+          kind: 'stake',
+          amount: -5,
+          marketId: 'm1',
+          betId: 'b1',
+          createdAt: new Date('2026-05-12T10:00:00Z'),
+        },
+        {
+          userId,
+          teamId,
+          kind: 'refund',
+          amount: 5,
+          marketId: 'm1',
+          betId: 'b1',
+          createdAt: new Date('2026-05-13T11:00:00Z'),
+        },
+      ]);
+      expect(await getSpendableAllowance(handle.db, { userId, teamId })).toBe(12);
+    });
+
+    it('does NOT add back refund-of-prior-week-stake (refund goes to holdings)', async () => {
+      __setNowForTests(new Date('2026-05-13T12:00:00Z'));
+      await handle.db.insert(users).values({ id: 'creator', email: 'c@example.com' });
+      await handle.db.insert(markets).values({
+        id: 'm1',
+        teamId,
+        creatorId: 'creator',
+        title: 'voided',
+        description: null,
+        lockupAt: new Date('2026-05-20T00:00:00Z'),
+        resolvesAt: new Date('2026-05-21T00:00:00Z'),
+        status: 'voided',
+      });
+      await handle.db.insert(bets).values({
+        id: 'b1',
+        marketId: 'm1',
+        userId,
+        side: 'yes',
+        amount: 5,
+        placedAt: new Date('2026-05-05T10:00:00Z'),
+      });
+      await handle.db.insert(ledgerEntries).values([
+        {
+          userId,
+          teamId,
+          kind: 'allowance_grant',
+          amount: 12,
+          createdAt: new Date('2026-05-11T00:00:00Z'),
+        },
+        {
+          userId,
+          teamId,
+          kind: 'refund',
+          amount: 5,
+          marketId: 'm1',
+          betId: 'b1',
+          createdAt: new Date('2026-05-13T11:00:00Z'),
+        },
+      ]);
+      expect(await getSpendableAllowance(handle.db, { userId, teamId })).toBe(12);
+    });
+
+    it('getSpendableAllowanceForWeek computes allowance for a specified prior week', async () => {
+      __setNowForTests(new Date('2026-05-13T12:00:00Z'));
+      const lastWeekStart = new Date('2026-05-04T00:00:00Z');
+      await handle.db.insert(ledgerEntries).values([
+        {
+          userId,
+          teamId,
+          kind: 'allowance_grant',
+          amount: 12,
+          createdAt: new Date('2026-05-04T00:00:00Z'),
+        },
+        {
+          userId,
+          teamId,
+          kind: 'stake',
+          amount: -3,
+          createdAt: new Date('2026-05-06T10:00:00Z'),
+        },
+        {
+          userId,
+          teamId,
+          kind: 'allowance_grant',
+          amount: 12,
+          createdAt: new Date('2026-05-11T00:00:00Z'),
+        },
+      ]);
+      const lastWeek = await getSpendableAllowanceForWeek(handle.db, {
+        userId,
+        teamId,
+        weekStart: lastWeekStart,
+      });
+      expect(lastWeek).toBe(9);
     });
   });
 
