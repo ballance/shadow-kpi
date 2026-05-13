@@ -1,9 +1,17 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Db } from '@/server/db/client';
-import { markets, memberships, bets as betsTable, type Market, type Bet } from '@/server/db/schema';
+import {
+  markets,
+  memberships,
+  bets as betsTable,
+  ledgerEntries,
+  type Market,
+  type Bet,
+} from '@/server/db/schema';
 import { DomainError } from '@/server/errors';
 import { eventBus } from '@/server/events';
 import { now } from '@/server/time';
+import { computePayouts, type BetInput } from '@/server/payouts';
 
 export interface CreateMarketInput {
   teamId: string;
@@ -108,4 +116,99 @@ export async function getMarketDetail(
   );
 
   return { market, pools, bets: allBets };
+}
+
+export interface ResolveMarketInput {
+  marketId: string;
+  userId: string;
+  outcome: 'yes' | 'no';
+}
+
+export async function resolveMarket(
+  db: Db,
+  input: ResolveMarketInput,
+): Promise<Market> {
+  const updated = await db.transaction(async (tx) => {
+    // Step 1: Acquire row lock with minimal raw-SQL query.
+    const lockResult = await tx.execute(
+      sql`SELECT id FROM market WHERE id = ${input.marketId} FOR UPDATE`,
+    );
+    const lockRows = lockResult as unknown as Array<{ id: string }>;
+    if (lockRows.length === 0) {
+      throw new DomainError('MARKET_NOT_FOUND', 'Market not found.');
+    }
+
+    // Step 2: Fetch typed row via Drizzle (lock is already held).
+    const [market] = await tx
+      .select()
+      .from(markets)
+      .where(eq(markets.id, input.marketId))
+      .limit(1);
+    if (!market) {
+      throw new DomainError('MARKET_NOT_FOUND', 'Market not found.');
+    }
+
+    if (market.creatorId !== input.userId) {
+      throw new DomainError(
+        'NOT_MARKET_CREATOR',
+        'Only the market creator can resolve this market.',
+      );
+    }
+
+    if (market.status !== 'open' && market.status !== 'locked') {
+      throw new DomainError(
+        'MARKET_NOT_RESOLVABLE',
+        'This market has already been resolved or voided.',
+      );
+    }
+
+    if (now().getTime() < market.resolvesAt.getTime()) {
+      throw new DomainError(
+        'RESOLVE_TOO_EARLY',
+        'You cannot resolve this market until its resolution time.',
+      );
+    }
+
+    const allBets = await tx
+      .select()
+      .from(betsTable)
+      .where(eq(betsTable.marketId, input.marketId));
+
+    const inputs: BetInput[] = allBets.map((b) => ({
+      id: b.id,
+      side: b.side,
+      amount: b.amount,
+      placedAt: b.placedAt,
+    }));
+    const { payouts } = computePayouts(inputs, input.outcome);
+
+    for (const p of payouts) {
+      const winningBet = allBets.find((b) => b.id === p.betId);
+      if (!winningBet) continue;
+      await tx.insert(ledgerEntries).values({
+        teamId: market.teamId,
+        userId: winningBet.userId,
+        amount: p.payout,
+        kind: 'payout',
+        marketId: input.marketId,
+        betId: winningBet.id,
+      });
+    }
+
+    const [row] = await tx
+      .update(markets)
+      .set({ status: 'resolved', outcome: input.outcome, resolvedAt: now() })
+      .where(eq(markets.id, input.marketId))
+      .returning();
+    return row;
+  });
+
+  await eventBus.emit({
+    type: 'MarketResolved',
+    marketId: updated.id,
+    teamId: updated.teamId,
+    outcome: updated.outcome as 'yes' | 'no',
+  });
+
+  return updated;
 }
