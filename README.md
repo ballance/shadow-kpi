@@ -6,7 +6,8 @@ Bet doughnuts on what happens at work. (No real money.)
 
 - **Plan 1 (Foundation + Identity):** Complete. Magic-link signup, teams, invite codes, balance.
 - **Plan 2 (First Market End-to-End):** Complete. Create markets, place bets, lockup, resolve with parimutuel payouts.
-- Plans 3 (Economy completeness — weekly reset, void, leaderboard) and 4 (Social — comments, notifications, profile, feed) are next.
+- **Plan 3 (Economy Completeness):** Complete. Weekly allowance reset, market void/refund, leaderboard.
+- Plan 4 (Social — comments, notifications, profile, activity feed) is next.
 
 ## Development
 
@@ -37,3 +38,4 @@ npm run dev
 - Design spec: `docs/superpowers/specs/2026-05-12-shadow-kpi-design.md`
 - Plan 1: `docs/superpowers/plans/2026-05-12-shadow-kpi-plan-1-foundation-identity.md`
 - Plan 2: `docs/superpowers/plans/2026-05-12-shadow-kpi-plan-2-first-market.md`
+- Plan 3: `docs/superpowers/plans/2026-05-12-shadow-kpi-plan-3-economy-completeness.md`
