@@ -48,7 +48,12 @@ export default async function TeamDashboardPage({ params }: TeamPageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-3xl font-semibold">{team.name}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-semibold">{team.name}</h1>
+        <Button asChild variant="outline">
+          <Link href={`/t/${teamId}/leaderboard`}>Leaderboard</Link>
+        </Button>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
