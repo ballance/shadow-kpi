@@ -6,7 +6,7 @@ const E2E_DATABASE_URL = 'postgres://shadowkpi:shadowkpi@localhost:5433/shadowkp
 
 test.beforeEach(async () => {
   const sql = postgres(E2E_DATABASE_URL, { max: 1 });
-  await sql`TRUNCATE ledger_entry, membership, team, session, account, "verificationToken", "user" RESTART IDENTITY CASCADE`;
+  await sql`TRUNCATE ledger_entry, bet, membership, market, team, session, account, "verificationToken", "user" RESTART IDENTITY CASCADE`;
   await sql.end();
 });
 

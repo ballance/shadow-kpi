@@ -2,9 +2,10 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 30_000,
+  timeout: 120_000,
   retries: 0,
   fullyParallel: false,
+  workers: 1,
   use: {
     baseURL: 'http://localhost:3001',
     headless: true,
@@ -13,6 +14,7 @@ export default defineConfig({
   webServer: {
     command:
       'DATABASE_URL=postgres://shadowkpi:shadowkpi@localhost:5433/shadowkpi_e2e ' +
+      'CRON_SECRET=test-secret-cron-12345 ' +
       'AUTH_URL=http://localhost:3001 ' +
       'PORT=3001 ' +
       'E2E_MODE=1 ' +
