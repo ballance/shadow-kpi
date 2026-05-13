@@ -233,3 +233,81 @@ export async function lockExpiredMarkets(db: Db): Promise<LockSweepResult> {
   }
   return { lockedIds: result.map((r) => r.id) };
 }
+
+export interface VoidMarketInput {
+  marketId: string;
+  userId: string;
+}
+
+export async function voidMarket(db: Db, input: VoidMarketInput): Promise<Market> {
+  const updated = await db.transaction(async (tx) => {
+    const lockResult = await tx.execute(
+      sql`SELECT id FROM market WHERE id = ${input.marketId} FOR UPDATE`,
+    );
+    const lockRows = lockResult as unknown as Array<{ id: string }>;
+    if (lockRows.length === 0) {
+      throw new DomainError('MARKET_NOT_FOUND', 'Market not found.');
+    }
+
+    const [market] = await tx
+      .select()
+      .from(markets)
+      .where(eq(markets.id, input.marketId))
+      .limit(1);
+    if (!market) {
+      throw new DomainError('MARKET_NOT_FOUND', 'Market not found.');
+    }
+
+    if (market.creatorId !== input.userId) {
+      throw new DomainError(
+        'NOT_MARKET_CREATOR',
+        'Only the market creator can void this market.',
+      );
+    }
+
+    if (market.status !== 'open') {
+      throw new DomainError(
+        'MARKET_NOT_RESOLVABLE',
+        'You can only void an open market (before lockup).',
+      );
+    }
+
+    if (now().getTime() >= market.lockupAt.getTime()) {
+      throw new DomainError(
+        'BET_AFTER_LOCKUP',
+        'You cannot void a market past its lockup time.',
+      );
+    }
+
+    const allBets = await tx
+      .select()
+      .from(betsTable)
+      .where(eq(betsTable.marketId, input.marketId));
+
+    for (const b of allBets) {
+      await tx.insert(ledgerEntries).values({
+        teamId: market.teamId,
+        userId: b.userId,
+        amount: b.amount,
+        kind: 'refund',
+        marketId: input.marketId,
+        betId: b.id,
+      });
+    }
+
+    const [row] = await tx
+      .update(markets)
+      .set({ status: 'voided' })
+      .where(eq(markets.id, input.marketId))
+      .returning();
+    return row;
+  });
+
+  await eventBus.emit({
+    type: 'MarketVoided',
+    marketId: updated.id,
+    teamId: updated.teamId,
+  });
+
+  return updated;
+}
