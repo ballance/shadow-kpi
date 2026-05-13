@@ -40,7 +40,7 @@ export default async function TeamDashboardPage({ params }: TeamPageProps) {
     revalidatePath(`/t/${teamId}`);
   }
 
-  const origin = process.env.AUTH_URL ?? 'http://localhost:3000';
+  const origin = process.env.AUTH_URL ?? 'http://localhost:3333';
   const inviteUrl = `${origin}/join/${team.inviteCode}`;
 
   const openMarkets = marketRows.filter((m) => m.status === 'open' || m.status === 'locked');
