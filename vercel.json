@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/lockup-sweep",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/weekly-reset",
+      "schedule": "0 0 * * 1"
     }
   ]
 }
