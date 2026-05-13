@@ -11,5 +11,18 @@ services:
     volumes:
       - shadowkpi-pg-data:/var/lib/postgresql/data
 
+  postgres-e2e:
+    image: postgres:16
+    container_name: shadowkpi-postgres-e2e
+    environment:
+      POSTGRES_USER: shadowkpi
+      POSTGRES_PASSWORD: shadowkpi
+      POSTGRES_DB: shadowkpi_e2e
+    ports:
+      - '5433:5432'
+    volumes:
+      - shadowkpi-pg-e2e-data:/var/lib/postgresql/data
+
 volumes:
   shadowkpi-pg-data:
+  shadowkpi-pg-e2e-data:
