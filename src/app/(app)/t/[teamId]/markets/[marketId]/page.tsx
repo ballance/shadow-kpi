@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { auth } from '@/server/auth';
 import { db } from '@/server/db/client';
 import { users } from '@/server/db/schema';
-import { getMarketDetail, resolveMarket } from '@/server/markets';
+import { getMarketDetail, resolveMarket, voidMarket } from '@/server/markets';
 import { placeBet } from '@/server/bets';
 import { getBalance, getSpendableAllowance } from '@/server/ledger';
 import { DomainError } from '@/server/errors';
@@ -56,6 +56,7 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
     (market.status === 'open' || market.status === 'locked') &&
     nowDate >= market.resolvesAt;
   const canBet = !isCreator && market.status === 'open' && beforeLockup;
+  const canVoid = isCreator && market.status === 'open' && beforeLockup;
   const isResolved = market.status === 'resolved';
 
   const [balance, allowance] = await Promise.all([
@@ -110,6 +111,14 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
       userId: session.user.id,
       outcome: parsed.data.outcome,
     });
+    revalidatePath(`/t/${teamId}/markets/${marketId}`);
+  }
+
+  async function voidAction() {
+    'use server';
+    const session = await auth();
+    if (!session?.user) throw new DomainError('NOT_AUTHENTICATED', 'Please sign in.');
+    await voidMarket(db, { marketId, userId: session.user.id });
     revalidatePath(`/t/${teamId}/markets/${marketId}`);
   }
 
@@ -193,6 +202,24 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
               </Button>
               <Button type="submit" name="outcome" value="no" variant="outline">
                 Resolve NO
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {canVoid && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Void this market</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground">
+              Voiding refunds every bet. Only available before lockup.
+            </p>
+            <form action={voidAction}>
+              <Button type="submit" variant="outline">
+                Void market
               </Button>
             </form>
           </CardContent>
