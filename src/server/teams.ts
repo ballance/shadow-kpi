@@ -1,7 +1,7 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Db } from '@/server/db/client';
-import { teams, memberships, type Team } from '@/server/db/schema';
+import { teams, memberships, ledgerEntries, users, type Team } from '@/server/db/schema';
 import { DomainError } from '@/server/errors';
 import { getBalance, grantInitialAllowance } from '@/server/ledger';
 
@@ -117,4 +117,40 @@ export async function listMembershipsForUser(
     result.push({ team: r.team, balance });
   }
   return result;
+}
+
+export interface LeaderboardRow {
+  userId: string;
+  email: string;
+  balance: number;
+}
+
+export async function getTeamLeaderboard(
+  db: Db,
+  teamId: string,
+): Promise<LeaderboardRow[]> {
+  const rows = await db
+    .select({
+      userId: users.id,
+      email: users.email,
+      balance: sql<number>`COALESCE(SUM(${ledgerEntries.amount}) FILTER (WHERE ${ledgerEntries.teamId} = ${teamId}), 0)::int`,
+    })
+    .from(memberships)
+    .innerJoin(users, eq(memberships.userId, users.id))
+    .leftJoin(
+      ledgerEntries,
+      and(
+        eq(ledgerEntries.userId, users.id),
+        eq(ledgerEntries.teamId, teamId),
+      ),
+    )
+    .where(eq(memberships.teamId, teamId))
+    .groupBy(users.id, users.email)
+    .orderBy(desc(sql`COALESCE(SUM(${ledgerEntries.amount}) FILTER (WHERE ${ledgerEntries.teamId} = ${teamId}), 0)`));
+
+  return rows.map((r) => ({
+    userId: r.userId,
+    email: r.email,
+    balance: r.balance ?? 0,
+  }));
 }

@@ -6,8 +6,9 @@ import {
   joinByInviteCode,
   listMembershipsForUser,
   rotateInviteCode,
+  getTeamLeaderboard,
 } from '@/server/teams';
-import { users, memberships, ledgerEntries } from '@/server/db/schema';
+import { users, memberships, ledgerEntries, teams } from '@/server/db/schema';
 import { DomainError } from '@/server/errors';
 import { WEEKLY_ALLOWANCE } from '@/server/ledger';
 
@@ -159,5 +160,51 @@ describe('teams service', () => {
       const rows = await listMembershipsForUser(handle.db, 'u1');
       expect(rows).toEqual([]);
     });
+  });
+});
+
+describe('teams.getTeamLeaderboard', () => {
+  let handle: TestDbHandle;
+
+  beforeAll(async () => {
+    handle = await startTestDb();
+  });
+
+  afterAll(async () => {
+    await handle.close();
+  });
+
+  beforeEach(async () => {
+    await handle.truncateAll();
+  });
+
+  it('returns members ordered by balance desc with display names', async () => {
+    await handle.db.insert(users).values([
+      { id: 'u1', email: 'alice@example.com' },
+      { id: 'u2', email: 'bob@example.com' },
+      { id: 'u3', email: 'carol@example.com' },
+    ]);
+    const t1 = await createTeam(handle.db, { name: 'X', creatorId: 'u1' });
+    await joinByInviteCode(handle.db, { userId: 'u2', inviteCode: t1.inviteCode });
+    await joinByInviteCode(handle.db, { userId: 'u3', inviteCode: t1.inviteCode });
+
+    await handle.db.insert(ledgerEntries).values([
+      { userId: 'u2', teamId: t1.id, kind: 'payout', amount: 50 },
+      { userId: 'u3', teamId: t1.id, kind: 'stake', amount: -3 },
+    ]);
+
+    const rows = await getTeamLeaderboard(handle.db, t1.id);
+    expect(rows.map((r) => r.userId)).toEqual(['u2', 'u1', 'u3']);
+    expect(rows[0]).toMatchObject({ userId: 'u2', email: 'bob@example.com', balance: 62 });
+    expect(rows[1]).toMatchObject({ userId: 'u1', email: 'alice@example.com', balance: 12 });
+    expect(rows[2]).toMatchObject({ userId: 'u3', email: 'carol@example.com', balance: 9 });
+  });
+
+  it('returns empty array when team has no members', async () => {
+    await handle.db
+      .insert(teams)
+      .values({ id: 't-empty', name: 'Empty', inviteCode: 'empty1' });
+    const rows = await getTeamLeaderboard(handle.db, 't-empty');
+    expect(rows).toEqual([]);
   });
 });
