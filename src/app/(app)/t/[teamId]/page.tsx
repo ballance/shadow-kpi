@@ -13,14 +13,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface TeamPageProps {
   params: Promise<{ teamId: string }>;
+  searchParams: Promise<{ status?: string }>;
 }
 
 function statusLabel(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export default async function TeamDashboardPage({ params }: TeamPageProps) {
+export default async function TeamDashboardPage({ params, searchParams }: TeamPageProps) {
   const { teamId } = await params;
+  const { status } = await searchParams;
+  const activeTab: 'open' | 'closed' | 'all' =
+    status === 'closed' || status === 'all' ? status : 'open';
   const session = await auth();
   if (!session?.user) return null;
 
@@ -42,9 +46,6 @@ export default async function TeamDashboardPage({ params }: TeamPageProps) {
 
   const origin = process.env.AUTH_URL ?? 'http://localhost:3333';
   const inviteUrl = `${origin}/join/${team.inviteCode}`;
-
-  const openMarkets = marketRows.filter((m) => m.status === 'open' || m.status === 'locked');
-  const closedMarkets = marketRows.filter((m) => m.status === 'resolved' || m.status === 'voided');
 
   return (
     <div className="flex flex-col gap-6">
@@ -87,57 +88,62 @@ export default async function TeamDashboardPage({ params }: TeamPageProps) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Open markets</CardTitle>
-          <Button asChild>
-            <Link href={`/t/${teamId}/markets/new`}>New market</Link>
-          </Button>
+          <CardTitle>Markets</CardTitle>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/t/${teamId}/activity`}>Activity</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={`/t/${teamId}/markets/new`}>New market</Link>
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
-          {openMarkets.length === 0 ? (
-            <p className="text-muted-foreground">No open markets. Create the first one.</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {openMarkets.map((m) => (
-                <li key={m.id} className="flex items-center justify-between">
-                  <Link
-                    href={`/t/${teamId}/markets/${m.id}`}
-                    className="hover:underline"
-                  >
-                    {m.title}
-                  </Link>
-                  <span className="text-sm text-muted-foreground">{statusLabel(m.status)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+        <CardContent className="flex flex-col gap-4">
+          <nav className="flex gap-2 border-b">
+            {(['open', 'closed', 'all'] as const).map((t) => (
+              <Link
+                key={t}
+                href={`/t/${teamId}?status=${t}`}
+                className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+                  activeTab === t
+                    ? 'border-foreground font-medium'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </Link>
+            ))}
+          </nav>
+          {(() => {
+            const filtered = marketRows.filter((m) => {
+              if (activeTab === 'open') return m.status === 'open' || m.status === 'locked';
+              if (activeTab === 'closed') return m.status === 'resolved' || m.status === 'voided';
+              return true;
+            });
+            if (filtered.length === 0) {
+              return <p className="text-muted-foreground">No markets in this tab.</p>;
+            }
+            return (
+              <ul className="flex flex-col gap-2">
+                {filtered.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between">
+                    <Link
+                      href={`/t/${teamId}/markets/${m.id}`}
+                      className="hover:underline"
+                    >
+                      {m.title}
+                    </Link>
+                    <span className="text-sm text-muted-foreground">
+                      {statusLabel(m.status)}
+                      {m.outcome && ` · ${m.outcome.toUpperCase()}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
         </CardContent>
       </Card>
-
-      {closedMarkets.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Closed markets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="flex flex-col gap-2">
-              {closedMarkets.map((m) => (
-                <li key={m.id} className="flex items-center justify-between">
-                  <Link
-                    href={`/t/${teamId}/markets/${m.id}`}
-                    className="hover:underline"
-                  >
-                    {m.title}
-                  </Link>
-                  <span className="text-sm text-muted-foreground">
-                    {statusLabel(m.status)}
-                    {m.outcome && ` · ${m.outcome.toUpperCase()}`}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
