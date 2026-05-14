@@ -5,6 +5,7 @@ import { auth } from '@/server/auth';
 import { db } from '@/server/db/client';
 import { users } from '@/server/db/schema';
 import { getMarketDetail, resolveMarket, voidMarket } from '@/server/markets';
+import { addComment, listCommentsForMarket } from '@/server/comments';
 import { placeBet } from '@/server/bets';
 import { getBalance, getSpendableAllowance } from '@/server/ledger';
 import { DomainError } from '@/server/errors';
@@ -44,6 +45,16 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
         </CardContent>
       </Card>
     );
+  }
+
+  const commentRows = await listCommentsForMarket(db, marketId);
+  const commenterIds = Array.from(new Set(commentRows.map((c) => c.userId)));
+  const commenterEmails = new Map<string, string>();
+  if (commenterIds.length > 0) {
+    const ucache = await db.select().from(users);
+    for (const u of ucache) {
+      if (commenterIds.includes(u.id)) commenterEmails.set(u.id, u.email);
+    }
   }
 
   const market = detail.market;
@@ -119,6 +130,18 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
     const session = await auth();
     if (!session?.user) throw new DomainError('NOT_AUTHENTICATED', 'Please sign in.');
     await voidMarket(db, { marketId, userId: session.user.id });
+    revalidatePath(`/t/${teamId}/markets/${marketId}`);
+  }
+
+  async function commentAction(formData: FormData) {
+    'use server';
+    const session = await auth();
+    if (!session?.user) throw new DomainError('NOT_AUTHENTICATED', 'Please sign in.');
+    const body = String(formData.get('body') ?? '').trim();
+    if (body.length === 0) {
+      throw new DomainError('VALIDATION_FAILED', 'Comment cannot be empty.');
+    }
+    await addComment(db, { marketId, userId: session.user.id, body });
     revalidatePath(`/t/${teamId}/markets/${marketId}`);
   }
 
@@ -250,6 +273,40 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
               Identities are revealed after the market is resolved.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Comments ({commentRows.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {commentRows.length === 0 ? (
+            <p className="text-muted-foreground">No comments yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {commentRows.map((c) => (
+                <li key={c.id} className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{nameFromEmail(commenterEmails.get(c.userId) ?? '???')}</span>
+                    <span>{fmtTime(c.createdAt)}</span>
+                  </div>
+                  <p className="whitespace-pre-wrap">{c.body}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form action={commentAction} className="flex flex-col gap-2">
+            <Input
+              name="body"
+              placeholder="Say something"
+              required
+              maxLength={2000}
+            />
+            <Button type="submit" variant="outline" className="self-start">
+              Post
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
