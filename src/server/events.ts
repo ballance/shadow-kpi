@@ -31,3 +31,18 @@ export function createEventBus(): EventBus {
 }
 
 export const eventBus = createEventBus();
+
+// Register production in-app notification subscriber.
+// Deferred so module-level imports do not crash when DATABASE_URL is absent
+// (e.g. in test environments that spin up their own containers).
+setImmediate(() => {
+  if (!process.env.DATABASE_URL) return;
+  Promise.all([
+    import('@/server/notifications'),
+    import('@/server/db/client'),
+  ]).then(([{ inAppNotificationSubscriber }, { db: productionDb }]) => {
+    eventBus.subscribe((event) => inAppNotificationSubscriber(productionDb, event));
+  }).catch((err) => {
+    console.error('Failed to register notification subscriber', err);
+  });
+});
