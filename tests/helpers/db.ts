@@ -31,6 +31,8 @@ export async function startTestDb(): Promise<TestDbHandle> {
   const tables = [
     'ledger_entry',
     'bet',
+    'notification',
+    'comment',
     'membership',
     'market',
     'team',

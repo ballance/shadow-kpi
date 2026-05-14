@@ -15,6 +15,13 @@
       "when": 1778637252141,
       "tag": "0001_friendly_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778720532259,
+      "tag": "0002_vengeful_vampiro",
+      "breakpoints": true
     }
   ]
 }

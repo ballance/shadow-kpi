@@ -132,6 +132,44 @@ export const bets = pgTable(
   (b) => ({ byMarket: index('bet_market_idx').on(b.marketId) }),
 );
 
+// NEW in Plan 4: notifications
+export const notifications = pgTable(
+  'notification',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    payload: text('payload'),
+    marketId: text('market_id').references(() => markets.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    readAt: timestamp('read_at'),
+  },
+  (n) => ({
+    byUserRead: index('notification_user_read_idx').on(n.userId, n.readAt),
+  }),
+);
+
+// NEW in Plan 4: comments
+export const comments = pgTable(
+  'comment',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    marketId: text('market_id')
+      .notNull()
+      .references(() => markets.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    body: text('body').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (c) => ({
+    byMarketCreated: index('comment_market_created_idx').on(c.marketId, c.createdAt),
+  }),
+);
+
 // MODIFIED in Plan 2: ledger_entry now has FK refs on market_id and bet_id
 export const ledgerEntries = pgTable(
   'ledger_entry',
@@ -169,3 +207,7 @@ export type Bet = typeof bets.$inferSelect;
 export type NewBet = typeof bets.$inferInsert;
 export type LedgerEntry = typeof ledgerEntries.$inferSelect;
 export type NewLedgerEntry = typeof ledgerEntries.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;
+export type Comment = typeof comments.$inferSelect;
+export type NewComment = typeof comments.$inferInsert;
