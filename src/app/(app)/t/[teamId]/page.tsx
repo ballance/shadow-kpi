@@ -51,9 +51,14 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-semibold">{team.name}</h1>
-        <Button asChild variant="outline">
-          <Link href={`/t/${teamId}/leaderboard`}>Leaderboard</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href={`/t/${teamId}/me`}>My profile</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={`/t/${teamId}/leaderboard`}>Leaderboard</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
