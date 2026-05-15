@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { auth } from '@/server/auth';
@@ -7,7 +8,7 @@ import { DomainError } from '@/server/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface NewMarketPageProps {
   params: Promise<{ teamId: string }>;
@@ -56,42 +57,48 @@ export default async function NewMarketPage({ params }: NewMarketPageProps) {
   }
 
   return (
-    <Card className="max-w-2xl">
-      <CardHeader>
-        <CardTitle>New market</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form action={action} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              name="title"
-              required
-              maxLength={200}
-              placeholder="Will the deploy ship by EOD Friday?"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="description">Description (optional)</Label>
-            <Input
-              id="description"
-              name="description"
-              maxLength={2000}
-              placeholder="Pacific time, our deploy script, no rollbacks."
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="lockupAt">Lockup time (bets close)</Label>
-            <Input id="lockupAt" name="lockupAt" type="datetime-local" required />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="resolvesAt">Resolution time (when you call it)</Label>
-            <Input id="resolvesAt" name="resolvesAt" type="datetime-local" required />
-          </div>
-          <Button type="submit">Create market</Button>
-        </form>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+      <Link href={`/t/${teamId}`} className="text-xs text-fg-muted hover:text-fg w-fit">
+        ← Back
+      </Link>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">New market</CardTitle>
+          <CardDescription>Set the question, the lockup time, and when you&apos;ll call it.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={action} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                name="title"
+                required
+                maxLength={200}
+                placeholder="Will the deploy ship by EOD Friday?"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <Input
+                id="description"
+                name="description"
+                maxLength={2000}
+                placeholder="Pacific time, our deploy script, no rollbacks."
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="lockupAt">Lockup time (bets close)</Label>
+              <Input id="lockupAt" name="lockupAt" type="datetime-local" required />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="resolvesAt">Resolution time (when you call it)</Label>
+              <Input id="resolvesAt" name="resolvesAt" type="datetime-local" required />
+            </div>
+            <Button type="submit">Create market</Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

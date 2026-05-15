@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -13,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { OddsBar } from '@/components/odds-bar';
+import { StatusPill } from '@/components/status-pill';
 import { LivePoll } from './live-poll';
 
 interface MarketDetailPageProps {
@@ -28,6 +31,18 @@ function nameFromEmail(email: string): string {
   return local.charAt(0).toUpperCase() + local.slice(1);
 }
 
+function relativeTime(d: Date): string {
+  const diffMs = Date.now() - d.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDays = Math.floor(diffHr / 24);
+  return `${diffDays}d ago`;
+}
+
 export default async function MarketDetailPage({ params }: MarketDetailPageProps) {
   const { teamId, marketId } = await params;
   const session = await auth();
@@ -40,8 +55,8 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
         <CardHeader>
           <CardTitle>Market not found</CardTitle>
         </CardHeader>
-        <CardContent className="text-muted-foreground">
-          That market doesn't exist on this team.
+        <CardContent className="text-fg-muted">
+          That market doesn&apos;t exist on this team.
         </CardContent>
       </Card>
     );
@@ -81,6 +96,11 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
     const rows = await db.select().from(users);
     for (const u of rows) if (ids.includes(u.id)) bettorEmails.set(u.id, u.email);
   }
+
+  // Fetch creator email for display
+  const creatorRows = await db.select().from(users);
+  const creatorEmail = creatorRows.find((u) => u.id === market.creatorId)?.email ?? '';
+  const creatorName = creatorEmail ? nameFromEmail(creatorEmail) : 'Unknown';
 
   async function betAction(formData: FormData) {
     'use server';
@@ -145,51 +165,73 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
     revalidatePath(`/t/${teamId}/markets/${marketId}`);
   }
 
+  const yesPool = detail.pools.yes;
+  const noPool = detail.pools.no;
+  const total = yesPool + noPool;
+  const yesShare = total === 0 ? 0 : yesPool / total;
+  const noShare = total === 0 ? 0 : noPool / total;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <LivePoll enabled={market.status === 'open' || market.status === 'locked'} />
 
-      <div>
-        <div className="text-sm text-muted-foreground">{market.status}</div>
-        <h1 className="text-2xl font-semibold">{market.title}</h1>
+      <Link
+        href={`/t/${teamId}`}
+        className="text-xs text-fg-muted hover:text-fg w-fit"
+      >
+        ← Back to team
+      </Link>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <StatusPill status={market.status} outcome={market.outcome ?? null} />
+          <span className="text-[10px] text-fg-dim">
+            Created by {creatorName} · {relativeTime(market.createdAt)}
+          </span>
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-fg leading-tight">
+          {market.title}
+        </h1>
         {market.description && (
-          <p className="mt-1 text-muted-foreground">{market.description}</p>
+          <p className="text-sm text-fg-muted">{market.description}</p>
         )}
-        <div className="mt-2 text-sm text-muted-foreground">
+        <div className="text-xs text-fg-dim">
           Bets close: {fmtTime(market.lockupAt)} · Resolves: {fmtTime(market.resolvesAt)}
-          {isResolved && market.outcome && (
-            <> · Outcome: <strong>{market.outcome.toUpperCase()}</strong></>
-          )}
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Yes pool</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl">🍩 {detail.pools.yes}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>No pool</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl">🍩 {detail.pools.no}</CardContent>
-        </Card>
-      </div>
+      <OddsBar
+        yesShare={yesShare}
+        noShare={noShare}
+        yesPool={yesPool}
+        noPool={noPool}
+        total={total}
+      />
 
       {canBet && (
         <Card>
-          <CardHeader>
-            <CardTitle>Place a bet</CardTitle>
+          <CardHeader className="p-4">
+            <CardTitle className="text-[11px] uppercase tracking-wide font-semibold">
+              Place a bet
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form action={betAction} className="flex flex-col gap-4">
               <div className="flex gap-2">
-                <Button type="submit" name="side" value="yes" variant="outline">
+                <Button
+                  type="submit"
+                  name="side"
+                  value="yes"
+                  className="bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20"
+                >
                   Bet Yes
                 </Button>
-                <Button type="submit" name="side" value="no" variant="outline">
+                <Button
+                  type="submit"
+                  name="side"
+                  value="no"
+                  className="bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20"
+                >
                   Bet No
                 </Button>
               </div>
@@ -204,7 +246,7 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
                   required
                   defaultValue={1}
                 />
-                <div className="text-sm text-muted-foreground">
+                <div className="text-xs text-fg-muted">
                   Your balance: 🍩 {balance} (spendable this week: 🍩 {allowance})
                 </div>
               </div>
@@ -215,8 +257,10 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
 
       {canResolve && (
         <Card>
-          <CardHeader>
-            <CardTitle>Resolve this market</CardTitle>
+          <CardHeader className="p-4">
+            <CardTitle className="text-[11px] uppercase tracking-wide font-semibold">
+              Call it
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form action={resolveAction} className="flex gap-2">
@@ -233,11 +277,13 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
 
       {canVoid && (
         <Card>
-          <CardHeader>
-            <CardTitle>Void this market</CardTitle>
+          <CardHeader className="p-4">
+            <CardTitle className="text-[11px] uppercase tracking-wide font-semibold">
+              Void this market
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-fg-muted">
               Voiding refunds every bet. Only available before lockup.
             </p>
             <form action={voidAction}>
@@ -249,13 +295,32 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
         </Card>
       )}
 
+      {isResolved && market.outcome && (
+        <Card>
+          <CardContent className="py-4 text-center">
+            <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">
+              Outcome:
+            </div>
+            <div
+              className={`text-2xl font-bold mt-1 ${
+                market.outcome === 'yes' ? 'text-accent' : 'text-danger'
+              }`}
+            >
+              {market.outcome.toUpperCase()}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
-        <CardHeader>
-          <CardTitle>Bets ({detail.bets.length})</CardTitle>
+        <CardHeader className="p-4">
+          <CardTitle className="text-[11px] uppercase tracking-wide font-semibold">
+            Bets ({detail.bets.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {detail.bets.length === 0 ? (
-            <p className="text-muted-foreground">No bets yet.</p>
+            <p className="text-sm text-fg-muted">No bets yet.</p>
           ) : isResolved ? (
             <ul className="flex flex-col gap-2">
               {detail.bets.map((b) => (
@@ -264,12 +329,12 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
                     {nameFromEmail(bettorEmails.get(b.userId) ?? '???')} —{' '}
                     <strong>{b.side.toUpperCase()}</strong> · 🍩 {b.amount}
                   </span>
-                  <span className="text-muted-foreground">{fmtTime(b.placedAt)}</span>
+                  <span className="text-xs text-fg-dim">{fmtTime(b.placedAt)}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-muted-foreground">
+            <p className="text-sm text-fg-muted">
               Identities are revealed after the market is resolved.
             </p>
           )}
@@ -277,35 +342,45 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Comments ({commentRows.length})</CardTitle>
+        <CardHeader className="p-4">
+          <CardTitle className="text-[11px] uppercase tracking-wide font-semibold">
+            Comments ({commentRows.length})
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {commentRows.length === 0 ? (
-            <p className="text-muted-foreground">No comments yet.</p>
+            <p className="text-sm text-fg-muted">No comments yet.</p>
           ) : (
             <ul className="flex flex-col gap-3">
               {commentRows.map((c) => (
-                <li key={c.id} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{nameFromEmail(commenterEmails.get(c.userId) ?? '???')}</span>
-                    <span>{fmtTime(c.createdAt)}</span>
+                <li key={c.id}>
+                  <div className="text-xs font-semibold text-fg">
+                    {nameFromEmail(commenterEmails.get(c.userId) ?? '???')}
+                    <span className="font-normal text-fg-dim">
+                      {' '}· {relativeTime(c.createdAt)}
+                    </span>
                   </div>
-                  <p className="whitespace-pre-wrap">{c.body}</p>
+                  <div className="text-sm text-fg mt-0.5 whitespace-pre-wrap">
+                    {c.body}
+                  </div>
                 </li>
               ))}
             </ul>
           )}
           <form action={commentAction} className="flex flex-col gap-2">
-            <Input
+            <input
               name="body"
               placeholder="Say something"
               required
               maxLength={2000}
+              className="flex h-9 w-full rounded-md border border-border bg-surface px-3 py-1 text-sm text-fg placeholder:text-fg-dim focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
             />
-            <Button type="submit" variant="outline" className="self-start">
+            <button
+              type="submit"
+              className="self-start rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-raised transition-colors"
+            >
               Post
-            </Button>
+            </button>
           </form>
         </CardContent>
       </Card>
