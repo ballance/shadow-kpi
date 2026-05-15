@@ -1,16 +1,23 @@
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function LandingPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-6 px-6 py-12 text-center">
-      <h1 className="text-4xl font-bold">shadow-kpi</h1>
-      <p className="text-muted-foreground">Bet doughnuts on what happens at work.</p>
-      <Link
-        href="/signin"
-        className="rounded-md bg-foreground px-4 py-2 text-background hover:opacity-90"
-      >
-        Sign in
-      </Link>
+    <main className="min-h-screen flex items-center justify-center px-6 bg-[radial-gradient(ellipse_at_top,_var(--surface-elevated),_var(--bg))]">
+      <div className="flex flex-col items-center gap-6 text-center max-w-md">
+        <div className="text-7xl sm:text-8xl select-none" aria-hidden>
+          🍩
+        </div>
+        <h1 className="font-mono text-4xl sm:text-5xl font-bold tracking-tight text-fg">
+          shadow-kpi
+        </h1>
+        <p className="text-lg text-fg-muted">
+          Bet doughnuts on what happens at work.
+        </p>
+        <Button asChild size="default">
+          <Link href="/signin">Sign in</Link>
+        </Button>
+      </div>
     </main>
   );
 }

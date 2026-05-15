@@ -1,16 +1,17 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function CheckEmailPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md items-center px-6">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Check your email</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            We sent you a sign-in link. Click it within 24 hours to sign in.
-          </p>
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 gap-6 bg-[radial-gradient(ellipse_at_top,_var(--surface-elevated),_var(--bg))]">
+      <Link href="/" className="font-mono text-2xl font-bold tracking-tight text-fg">
+        shadow-kpi
+      </Link>
+      <Card className="w-full max-w-sm">
+        <CardContent className="text-center py-8 flex flex-col gap-3">
+          <div className="text-5xl" aria-hidden>📬</div>
+          <div className="text-base font-semibold text-fg">Check your email</div>
+          <p className="text-sm text-fg-muted">We sent you a magic link. It expires in 24 hours.</p>
         </CardContent>
       </Card>
     </main>

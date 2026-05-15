@@ -1,9 +1,10 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { signIn, auth } from '@/server/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 interface SignInPageProps {
   searchParams: Promise<{ callbackUrl?: string }>;
@@ -23,10 +24,14 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md items-center px-6">
-      <Card className="w-full">
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 gap-6 bg-[radial-gradient(ellipse_at_top,_var(--surface-elevated),_var(--bg))]">
+      <Link href="/" className="font-mono text-2xl font-bold tracking-tight text-fg">
+        shadow-kpi
+      </Link>
+      <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Sign in to shadow-kpi</CardTitle>
+          <CardTitle className="text-base">Sign in</CardTitle>
+          <CardDescription>We'll email you a magic link.</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={action} className="flex flex-col gap-4">
