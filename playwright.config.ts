@@ -16,6 +16,7 @@ export default defineConfig({
       'DATABASE_URL=postgres://shadowkpi:shadowkpi@localhost:5433/shadowkpi_e2e ' +
       'CRON_SECRET=test-secret-cron-12345 ' +
       'AUTH_URL=http://localhost:3001 ' +
+      'AUTH_SECRET=e2e-run-not-a-real-secret-0000000000000000 ' +
       'E2E_MODE=1 ' +
       'npx next dev -p 3001',
     url: 'http://localhost:3001',
