@@ -7,6 +7,7 @@ import { getProfile } from '@/server/profile';
 import { getBalance, getSpendableAllowance } from '@/server/ledger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/empty-state';
 
 interface MePageProps {
   params: Promise<{ teamId: string }>;
@@ -32,34 +33,36 @@ export default async function MePage({ params }: MePageProps) {
       : Math.round((profile.winCount / profile.resolvedCount) * 100);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">You on {team.name}</h1>
-        <Button asChild variant="outline">
-          <Link href={`/t/${teamId}`}>Back to team</Link>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-fg">You on {team.name}</h1>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/t/${teamId}`}>← Back to team</Link>
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card>
-          <CardHeader>
-            <CardTitle>Balance</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl">🍩 {balance}</CardContent>
+          <CardContent className="py-4">
+            <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">Balance</div>
+            <div className="text-2xl font-bold text-fg font-mono mt-0.5">🍩 {balance}</div>
+          </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>This week</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl">🍩 {allowance}</CardContent>
+          <CardContent className="py-4">
+            <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">This week</div>
+            <div className="text-2xl font-bold text-fg font-mono mt-0.5">🍩 {allowance}</div>
+          </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Win rate</CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl">
-            {winRate === null ? '—' : `${winRate}%`}
-            <div className="text-sm text-muted-foreground">
+          <CardContent className="py-4">
+            <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">Win rate</div>
+            <div className="text-2xl font-bold text-fg font-mono mt-0.5">
+              {winRate === null ? '—' : `${winRate}%`}
+            </div>
+            <div className="text-[10px] text-fg-dim mt-0.5">
               {profile.winCount} of {profile.resolvedCount} resolved
             </div>
           </CardContent>
@@ -67,37 +70,47 @@ export default async function MePage({ params }: MePageProps) {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Bet history ({profile.bets.length})</CardTitle>
+        <CardHeader className="p-4">
+          <CardTitle className="text-[11px] uppercase tracking-wide font-semibold">
+            Bet history ({profile.bets.length})
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          {profile.bets.length === 0 ? (
-            <p className="text-muted-foreground">No bets yet.</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {profile.bets.map(({ bet, market }) => (
-                <li key={bet.id} className="flex items-center justify-between text-sm">
+        {profile.bets.length === 0 ? (
+          <EmptyState title="No bets yet" description="Place one to start filling this in." />
+        ) : (
+          <ul className="divide-y divide-border">
+            {profile.bets.map(({ bet, market }) => {
+              const won = market.status === 'resolved' && market.outcome === bet.side;
+              const lost = market.status === 'resolved' && market.outcome && market.outcome !== bet.side;
+              const voided = market.status === 'voided';
+              return (
+                <li key={bet.id}>
                   <Link
                     href={`/t/${teamId}/markets/${market.id}`}
-                    className="hover:underline"
+                    className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface-elevated transition-colors"
                   >
-                    {market.title}
+                    <span className="text-sm text-fg truncate flex-1">{market.title}</span>
+                    <span className="flex items-center gap-2 whitespace-nowrap text-xs">
+                      <span
+                        className={`rounded-sm px-1.5 py-0.5 text-[10px] font-bold uppercase border ${
+                          bet.side === 'yes'
+                            ? 'bg-accent-bg text-accent border-accent-border'
+                            : 'bg-danger-bg text-danger border-danger-border'
+                        }`}
+                      >
+                        {bet.side}
+                      </span>
+                      <span className="font-mono text-fg">🍩 {bet.amount}</span>
+                      {won && <span className="text-accent font-semibold">✓ won</span>}
+                      {lost && <span className="text-danger font-semibold">✗ lost</span>}
+                      {voided && <span className="text-fg-dim">voided</span>}
+                    </span>
                   </Link>
-                  <span className="text-muted-foreground">
-                    {bet.side.toUpperCase()} · 🍩 {bet.amount}
-                    {market.status === 'resolved' && market.outcome && (
-                      <>
-                        {' '}
-                        · {bet.side === market.outcome ? '✓ won' : '✗ lost'}
-                      </>
-                    )}
-                    {market.status === 'voided' && <> · voided</>}
-                  </span>
                 </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
+              );
+            })}
+          </ul>
+        )}
       </Card>
     </div>
   );

@@ -5,7 +5,8 @@ import { eq } from 'drizzle-orm';
 import { teams } from '@/server/db/schema';
 import { getTeamActivityFeed, type ActivityItem } from '@/server/activity';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/empty-state';
 
 interface ActivityPageProps {
   params: Promise<{ teamId: string }>;
@@ -14,6 +15,14 @@ interface ActivityPageProps {
 function nameFromEmail(email: string): string {
   const local = email.split('@')[0];
   return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
+function iconFor(item: ActivityItem): string {
+  switch (item.kind) {
+    case 'market_created': return '📈';
+    case 'market_resolved': return item.outcome === 'yes' ? '✅' : '❌';
+    case 'comment_posted': return '💬';
+  }
 }
 
 function describeItem(item: ActivityItem): string {
@@ -38,40 +47,39 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
   const items = await getTeamActivityFeed(db, teamId, 50);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Activity — {team.name}</h1>
-        <Button asChild variant="outline">
-          <Link href={`/t/${teamId}`}>Back to team</Link>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-fg-dim font-semibold">Activity</div>
+          <h1 className="text-2xl font-bold tracking-tight text-fg">{team.name}</h1>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/t/${teamId}`}>← Back to team</Link>
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="py-6">
-          {items.length === 0 ? (
-            <p className="text-muted-foreground">No activity yet.</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {items.map((item, i) => (
-                <li
-                  key={`${item.kind}-${item.marketId}-${i}`}
-                  className="flex items-center justify-between"
+      {items.length === 0 ? (
+        <EmptyState title="No activity yet" description="Create a market or comment to see things show up here." />
+      ) : (
+        <Card>
+          <ul className="divide-y divide-border">
+            {items.map((item, i) => (
+              <li key={`${item.kind}-${item.marketId}-${i}`}>
+                <Link
+                  href={`/t/${teamId}/markets/${item.marketId}`}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-surface-elevated transition-colors"
                 >
-                  <Link
-                    href={`/t/${teamId}/markets/${item.marketId}`}
-                    className="hover:underline"
-                  >
-                    {describeItem(item)}
-                  </Link>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-lg" aria-hidden>{iconFor(item)}</span>
+                  <span className="flex-1 text-sm text-fg truncate">{describeItem(item)}</span>
+                  <span className="text-[10px] text-fg-dim whitespace-nowrap">
                     {item.at.toISOString().slice(0, 16).replace('T', ' ')} UTC
                   </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
     </div>
   );
 }
