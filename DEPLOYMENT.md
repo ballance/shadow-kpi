@@ -46,14 +46,16 @@ Save them somewhere — your password manager, or just keep this terminal open f
 
 This is the step that unblocks "magic links to anyone, not just `ballance@gmail.com`."
 
+We're using **`mail.bastionforge.com`** as the send-from domain — a dedicated subdomain isolates the SPF/DKIM/DMARC records from anything else you might use the root for.
+
 1. Go to <https://resend.com/domains>
-2. **Add Domain** → enter a domain or subdomain you control (e.g., `mail.your-domain.com` is a common pattern)
-3. Resend gives you 3–4 DNS records (SPF, DKIM, optionally DMARC + a tracking CNAME). Add them at your registrar:
-   - SPF: `TXT @ "v=spf1 include:_spf.resend.com ~all"` (or merge with existing SPF)
-   - DKIM: `TXT resend._domainkey "p=..."`
-   - DMARC: `TXT _dmarc "v=DMARC1; p=none;"`
-4. Wait for "Verified" (usually <10 min after DNS propagates)
-5. Decide a `from` address on that domain — e.g., `shadow-kpi <noreply@mail.your-domain.com>`
+2. **Add Domain** → enter `mail.bastionforge.com`
+3. Resend gives you 3–4 DNS records. Add them at your registrar (the host column shows where each record goes relative to `bastionforge.com`):
+   - SPF: `TXT mail "v=spf1 include:_spf.resend.com ~all"`
+   - DKIM: `TXT resend._domainkey.mail "p=<long-key-string>"`
+   - DMARC: `TXT _dmarc.mail "v=DMARC1; p=none;"`
+4. Wait for "Verified" in the Resend dashboard (usually <10 min after DNS propagates)
+5. The `from` address you'll use everywhere is: `shadow-kpi <noreply@mail.bastionforge.com>`
 
 ---
 
@@ -76,7 +78,7 @@ This is the step that unblocks "magic links to anyone, not just `ballance@gmail.
    | `AUTH_SECRET` | first hex string from Step 1 |
    | `AUTH_URL` | leave blank for now — we set this after first deploy |
    | `RESEND_API_KEY` | your `re_...` key from Resend dashboard |
-   | `AUTH_EMAIL_FROM` | the from-address you picked in Step 3 |
+   | `AUTH_EMAIL_FROM` | `shadow-kpi <noreply@mail.bastionforge.com>` |
    | `CRON_SECRET` | second hex string from Step 1 |
 
 6. Click **Deploy**
@@ -96,14 +98,16 @@ This time the build is green and `/` loads.
 
 ---
 
-## Step 6 — Custom domain (optional)
+## Step 6 — Custom domain (`shadow-kpi.bastionforge.com`)
 
-If you want `shadow-kpi.your-domain.com` instead of `shadow-kpi.vercel.app`:
-
-1. **Project → Settings → Domains → Add** → enter your subdomain
-2. Vercel gives you a CNAME (or A record) to add at your registrar
-3. After DNS propagates, update `AUTH_URL` in env to the custom domain
-4. Redeploy once more
+1. **Project → Settings → Domains → Add** → enter `shadow-kpi.bastionforge.com`
+2. Vercel gives you a CNAME record:
+   - Type: `CNAME`
+   - Host: `shadow-kpi`
+   - Value: `cname.vercel-dns.com`
+3. Add that at your registrar. Vercel auto-issues a Let's Encrypt cert once DNS propagates (~5 min)
+4. Once Vercel marks it "Valid Configuration", update `AUTH_URL` in env from the `*.vercel.app` URL to `https://shadow-kpi.bastionforge.com`
+5. Redeploy once more
 
 ---
 
