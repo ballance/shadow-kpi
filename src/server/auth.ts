@@ -43,7 +43,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
           body: JSON.stringify({
             from: provider.from,
-            to: identifier,
+            to: stripPlusAlias(identifier),
             subject: 'Your shadow-kpi sign-in link',
             html: signInEmailHtml(url),
             text: `Sign in to shadow-kpi: ${url}\n\nThis link expires in 24 hours.`,
@@ -67,6 +67,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+function stripPlusAlias(email: string): string {
+  const at = email.indexOf('@');
+  if (at < 0) return email;
+  const local = email.slice(0, at);
+  const plus = local.indexOf('+');
+  if (plus < 0) return email;
+  return local.slice(0, plus) + email.slice(at);
+}
 
 function signInEmailHtml(url: string): string {
   return `
