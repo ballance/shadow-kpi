@@ -4,10 +4,10 @@
 
 **Bet doughnuts on what happens at work.**
 
+[![CI](https://github.com/ballance/shadow-kpi/actions/workflows/ci.yml/badge.svg)](https://github.com/ballance/shadow-kpi/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/typescript-strict-3178c6.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/next.js-16-000000.svg)](https://nextjs.org/)
-[![Tests](https://img.shields.io/badge/tests-110%20unit%20%2B%204%20e2e-22c55e.svg)](#-tests)
 [![Status](https://img.shields.io/badge/status-v1%20shipped-f43f5e.svg)](#-docs)
 
 </div>

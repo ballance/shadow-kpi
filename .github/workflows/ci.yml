@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  ci:
+    name: Typecheck · Build · Test · E2E
+    runs-on: ubuntu-latest
+
+    services:
+      postgres-e2e:
+        image: postgres:16
+        env:
+          POSTGRES_USER: shadowkpi
+          POSTGRES_PASSWORD: shadowkpi
+          POSTGRES_DB: shadowkpi_e2e
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -U shadowkpi"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        env:
+          AUTH_SECRET: ci-build-not-a-real-secret-0000000000000000
+          AUTH_URL: http://localhost:3001
+          DATABASE_URL: postgres://shadowkpi:shadowkpi@localhost:5433/shadowkpi_e2e
+          CRON_SECRET: ci-build-cron-secret
+        run: npm run build
+
+      - name: Apply E2E DB migrations
+        env:
+          DATABASE_URL: postgres://shadowkpi:shadowkpi@localhost:5433/shadowkpi_e2e
+        run: npm run db:migrate
+
+      - name: Unit + integration tests
+        run: npm test
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright trace artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
