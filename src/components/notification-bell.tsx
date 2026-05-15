@@ -13,7 +13,7 @@ interface NotificationItem {
   readAt: string | null;
 }
 
-interface NotificationBellProps {
+export interface NotificationBellProps {
   unreadCount: number;
   notifications: NotificationItem[];
 }
@@ -65,15 +65,16 @@ export function NotificationBell({
       >
         <span aria-hidden>🔔</span>
         {unreadCount > 0 && (
-          <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs text-white">
-            {unreadCount}
-          </span>
+          <span
+            aria-hidden
+            className="absolute top-0 right-0 h-2 w-2 rounded-full bg-accent"
+          />
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-10 mt-2 w-80 rounded-md border bg-white p-2 shadow-lg dark:bg-slate-950">
+        <div className="absolute right-0 z-10 mt-2 w-80 rounded-lg border border-border bg-surface p-2 shadow-lg">
           {notifications.length === 0 ? (
-            <p className="px-3 py-4 text-center text-sm text-slate-500">No notifications yet.</p>
+            <p className="px-3 py-4 text-center text-sm text-fg-dim">No notifications yet.</p>
           ) : (
             <ul className="flex flex-col gap-1">
               {notifications.map((n) => {
@@ -89,8 +90,8 @@ export function NotificationBell({
                     <Link
                       href={href}
                       onClick={() => setOpen(false)}
-                      className={`block rounded-md px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 ${
-                        n.readAt ? 'text-slate-500' : ''
+                      className={`block rounded-md px-3 py-2 text-sm text-fg hover:bg-surface-raised ${
+                        n.readAt ? 'text-fg-dim' : ''
                       }`}
                     >
                       {describe(n.kind)}
