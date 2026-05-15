@@ -10,14 +10,12 @@ import { listMarketsForTeam } from '@/server/markets';
 import { DomainError } from '@/server/errors';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusPill } from '@/components/status-pill';
+import { EmptyState } from '@/components/empty-state';
 
 interface TeamPageProps {
   params: Promise<{ teamId: string }>;
   searchParams: Promise<{ status?: string }>;
-}
-
-function statusLabel(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 export default async function TeamDashboardPage({ params, searchParams }: TeamPageProps) {
@@ -47,44 +45,49 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
   const origin = process.env.AUTH_URL ?? 'http://localhost:3333';
   const inviteUrl = `${origin}/join/${team.inviteCode}`;
 
+  const filtered = marketRows.filter((m) => {
+    if (activeTab === 'open') return m.status === 'open' || m.status === 'locked';
+    if (activeTab === 'closed') return m.status === 'resolved' || m.status === 'voided';
+    return true;
+  });
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">{team.name}</h1>
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-fg-dim font-semibold">Team</div>
+          <h1 className="text-2xl font-bold tracking-tight text-fg">{team.name}</h1>
+        </div>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" size="sm">
             <Link href={`/t/${teamId}/me`}>My profile</Link>
           </Button>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" size="sm">
             <Link href={`/t/${teamId}/leaderboard`}>Leaderboard</Link>
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Your balance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl">🍩 {balance}</div>
-            <div className="text-sm text-muted-foreground">
-              Spendable this week: 🍩 {allowance}
+          <CardContent className="py-4">
+            <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">Balance</div>
+            <div className="text-2xl font-bold text-fg font-mono mt-0.5">🍩 {balance}</div>
+            <div className="text-xs text-fg-muted mt-1">
+              Spendable this week: <span className="text-accent font-semibold font-mono">🍩 {allowance}</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Invite link</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <code className="block break-all rounded-md bg-muted px-3 py-2 text-sm">
+          <CardContent className="py-4">
+            <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">Invite link</div>
+            <code className="block mt-2 break-all rounded-md bg-bg border border-border-strong px-2 py-1.5 text-[11px] font-mono text-fg-muted">
               {inviteUrl}
             </code>
-            <form action={rotateAction}>
-              <Button type="submit" variant="outline">
-                Rotate code
+            <form action={rotateAction} className="mt-2">
+              <Button type="submit" variant="ghost" size="sm" className="text-accent hover:text-accent">
+                ↻ Rotate code
               </Button>
             </form>
           </CardContent>
@@ -92,7 +95,7 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex-row items-center justify-between flex-wrap gap-2 p-4">
           <CardTitle>Markets</CardTitle>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
@@ -103,51 +106,49 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <nav className="flex gap-2 border-b">
-            {(['open', 'closed', 'all'] as const).map((t) => (
-              <Link
-                key={t}
-                href={`/t/${teamId}?status=${t}`}
-                className={`-mb-px border-b-2 px-3 py-2 text-sm ${
-                  activeTab === t
-                    ? 'border-foreground font-medium'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </Link>
-            ))}
-          </nav>
-          {(() => {
-            const filtered = marketRows.filter((m) => {
-              if (activeTab === 'open') return m.status === 'open' || m.status === 'locked';
-              if (activeTab === 'closed') return m.status === 'resolved' || m.status === 'voided';
-              return true;
-            });
-            if (filtered.length === 0) {
-              return <p className="text-muted-foreground">No markets in this tab.</p>;
-            }
-            return (
-              <ul className="flex flex-col gap-2">
-                {filtered.map((m) => (
-                  <li key={m.id} className="flex items-center justify-between">
-                    <Link
-                      href={`/t/${teamId}/markets/${m.id}`}
-                      className="hover:underline"
-                    >
-                      {m.title}
-                    </Link>
-                    <span className="text-sm text-muted-foreground">
-                      {statusLabel(m.status)}
-                      {m.outcome && ` · ${m.outcome.toUpperCase()}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            );
-          })()}
-        </CardContent>
+        <div className="flex gap-4 px-4 border-b border-border overflow-x-auto">
+          {(['open', 'closed', 'all'] as const).map((t) => (
+            <Link
+              key={t}
+              href={`/t/${teamId}?status=${t}`}
+              className={`-mb-px border-b-2 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
+                activeTab === t
+                  ? 'border-accent text-fg'
+                  : 'border-transparent text-fg-dim hover:text-fg'
+              }`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </Link>
+          ))}
+        </div>
+        {filtered.length === 0 ? (
+          <EmptyState
+            title="No markets in this tab"
+            description="Create the first one for your team."
+          />
+        ) : (
+          <ul className="divide-y divide-border">
+            {filtered.map((m) => {
+              const isClosed = m.status === 'resolved' || m.status === 'voided';
+              return (
+                <li key={m.id} className="px-4 py-3 hover:bg-surface-elevated transition-colors">
+                  <Link
+                    href={`/t/${teamId}/markets/${m.id}`}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-fg truncate">{m.title}</span>
+                        {m.status === 'locked' && <StatusPill status="locked" />}
+                        {isClosed && <StatusPill status={m.status} outcome={m.outcome ?? null} />}
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </Card>
     </div>
   );
