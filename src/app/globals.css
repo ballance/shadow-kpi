@@ -1,26 +1,89 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --bg: #fafaf7;
+  --surface: #ffffff;
+  --surface-elevated: #f5f5f0;
+  --border: #e7e5e0;
+  --border-strong: #d4d2cb;
+  --fg: #0a0d12;
+  --fg-muted: #475569;
+  --fg-dim: #78716c;
+  --accent: #0f766e;
+  --accent-fg: #ffffff;
+  --accent-bg: #ccfbf1;
+  --accent-border: #14b8a6;
+  --danger: #e11d48;
+  --danger-fg: #ffffff;
+  --danger-bg: #ffe4e6;
+  --danger-border: #fb7185;
+  --warning: #d97706;
+  --ring: #0f766e;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+  --r-pill: 999px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0b0d11;
+    --surface: #11151c;
+    --surface-elevated: #161a22;
+    --border: #181c23;
+    --border-strong: #1f2630;
+    --fg: #e8eef5;
+    --fg-muted: #94a3b8;
+    --fg-dim: #64748b;
+    --accent: #2dd4bf;
+    --accent-fg: #062f2a;
+    --accent-bg: #062f2a;
+    --accent-border: #14b8a6;
+    --danger: #f43f5e;
+    --danger-fg: #2a0e16;
+    --danger-bg: #2a0e16;
+    --danger-border: #fb7185;
+    --warning: #fbbf24;
+    --ring: #2dd4bf;
   }
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-foreground: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-muted-foreground: var(--fg-muted);
+  --color-fg-dim: var(--fg-dim);
+  --color-muted: var(--surface-elevated);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-border: var(--accent-border);
+  --color-danger: var(--danger);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-border: var(--danger-border);
+  --color-warning: var(--warning);
+  --color-ring: var(--ring);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-pill: var(--r-pill);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
