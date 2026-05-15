@@ -8,6 +8,7 @@ Bet doughnuts on what happens at work. (No real money.)
 - **Plan 2 (First Market End-to-End):** Complete. Create markets, place bets, lockup, resolve with parimutuel payouts.
 - **Plan 3 (Economy Completeness):** Complete. Weekly allowance reset, market void/refund, leaderboard.
 - **Plan 4 (Social & Polish):** Complete. In-app notifications + bell, comments, activity feed, status tabs, profile, mobile sweep.
+- **Styling redesign:** Complete. Polymarket-vibe palette (dark navy + teal + coral), full responsive sweep, both light and dark OS modes.
 - **v1 shipped.** Future v2 work: webhook delivery, per-user notification mute, multi-choice markets, structured logging.
 
 ## Development
@@ -41,3 +42,5 @@ npm run dev
 - Plan 2: `docs/superpowers/plans/2026-05-12-shadow-kpi-plan-2-first-market.md`
 - Plan 3: `docs/superpowers/plans/2026-05-12-shadow-kpi-plan-3-economy-completeness.md`
 - Plan 4: `docs/superpowers/plans/2026-05-12-shadow-kpi-plan-4-social-and-polish.md`
+- Styling spec: `docs/superpowers/specs/2026-05-14-shadow-kpi-styling-design.md`
+- Styling plan: `docs/superpowers/plans/2026-05-14-shadow-kpi-styling-plan.md`
