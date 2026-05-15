@@ -27,17 +27,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <NavBar
         homeHref="/teams"
         notifications={{ unreadCount, notifications: items }}
-      />
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 py-6">
-        <div className="flex justify-end pb-2">
+        rightExtras={
           <form action={async () => { 'use server'; await signOut({ redirectTo: '/' }); }}>
-            <button type="submit" className="text-sm text-fg-dim hover:text-fg hover:underline transition-colors">
+            <button
+              type="submit"
+              className="text-xs text-fg-dim hover:text-fg transition-colors"
+            >
               Sign out
             </button>
           </form>
-        </div>
-        {children}
-      </div>
+        }
+      />
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 py-6">{children}</div>
     </div>
   );
 }
