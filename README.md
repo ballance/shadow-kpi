@@ -46,6 +46,8 @@ npm run dev                   # → http://localhost:3333
 
 Pour a coffee. Land on the landing page. Get a magic link, sign in, create a team, share the invite URL, start asking questions.
 
+Ready to put it in front of your actual team? See **[DEPLOYMENT.md](DEPLOYMENT.md)** — Vercel + Neon + Resend, ~1 hour, free at any reasonable team scale.
+
 ---
 
 ## ✨ Features
