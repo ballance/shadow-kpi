@@ -1,10 +1,11 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/server/auth';
 import { db } from '@/server/db/client';
 import { findTeamByInviteCode, joinByInviteCode } from '@/server/teams';
 import { DomainError } from '@/server/errors';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 interface JoinPageProps {
   params: Promise<{ code: string }>;
@@ -22,16 +23,18 @@ export default async function JoinPage({ params }: JoinPageProps) {
   const team = await findTeamByInviteCode(db, code);
   if (!team) {
     return (
-      <main className="mx-auto max-w-md px-6 py-12">
-        <Card>
+      <div className="flex flex-col items-center gap-4 max-w-md mx-auto py-12">
+        <Card className="w-full">
           <CardHeader>
-            <CardTitle>Invite not found</CardTitle>
+            <CardTitle className="text-base">Invite not found</CardTitle>
+            <CardDescription>That invite link looks broken.</CardDescription>
           </CardHeader>
-          <CardContent className="text-muted-foreground">
-            That invite link looks broken. Ask whoever shared it for a new one.
+          <CardContent className="text-sm text-fg-muted">
+            Ask whoever shared it for a new one, or{' '}
+            <Link href="/teams" className="underline hover:text-fg">go back to your teams</Link>.
           </CardContent>
         </Card>
-      </main>
+      </div>
     );
   }
 
@@ -51,20 +54,21 @@ export default async function JoinPage({ params }: JoinPageProps) {
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-12">
-      <Card>
+    <div className="flex flex-col items-center gap-4 max-w-md mx-auto py-12">
+      <Card className="w-full">
         <CardHeader>
-          <CardTitle>Join {team.name}</CardTitle>
+          <CardTitle className="text-base">Join {team.name}</CardTitle>
+          <CardDescription>Click the button below to accept the invite.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <p className="text-muted-foreground">
-            You're about to join <strong>{team.name}</strong>. You'll get 12 fresh doughnuts to start.
+          <p className="text-sm text-fg-muted">
+            You're about to join <strong className="text-fg">{team.name}</strong>. You'll get 12 fresh doughnuts to start.
           </p>
           <form action={joinAction}>
             <Button type="submit">Join team</Button>
           </form>
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

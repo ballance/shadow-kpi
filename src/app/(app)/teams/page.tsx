@@ -4,6 +4,7 @@ import { db } from '@/server/db/client';
 import { listMembershipsForUser } from '@/server/teams';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/empty-state';
 
 export default async function TeamsPage() {
   const session = await auth();
@@ -13,33 +14,35 @@ export default async function TeamsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Your teams</h1>
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-fg-dim font-semibold">Your teams</div>
+          <h1 className="text-2xl font-bold tracking-tight text-fg">Pick a team</h1>
+        </div>
         <Button asChild>
           <Link href="/teams/new">Create team</Link>
         </Button>
       </div>
 
       {memberships.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            You aren't on any teams yet. Create one above, or join one via an invite link.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="You aren't on any teams yet."
+          description="Create one above, or join one via an invite link."
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {memberships.map(({ team, balance }) => (
-            <Card key={team.id}>
-              <CardHeader>
-                <CardTitle>{team.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center justify-between">
-                <span className="text-2xl">🍩 {balance}</span>
-                <Button asChild variant="outline">
-                  <Link href={`/t/${team.id}`}>Open</Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <Link key={team.id} href={`/t/${team.id}`}>
+              <Card className="hover:bg-surface-elevated transition-colors cursor-pointer">
+                <CardHeader>
+                  <CardTitle>{team.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between py-3">
+                  <span className="text-sm text-fg-muted">🍩 {balance}</span>
+                  <span className="text-xs text-fg-dim">Open →</span>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
