@@ -23,26 +23,30 @@ export function OddsBar({ yesShare, noShare, yesPool, noPool, total }: OddsBarPr
       ) : (
         <>
           <div className="h-9 rounded-md overflow-hidden flex">
-            <div
-              className="flex items-center justify-center text-xs font-bold"
-              style={{
-                width: `${yesShare * 100}%`,
-                background: YES_GRADIENT,
-                color: '#062f2a',
-              }}
-            >
-              YES · {Math.round(yesShare * 100)}%
-            </div>
-            <div
-              className="flex items-center justify-center text-xs font-bold"
-              style={{
-                width: `${noShare * 100}%`,
-                background: NO_GRADIENT,
-                color: '#2a0e16',
-              }}
-            >
-              NO · {Math.round(noShare * 100)}%
-            </div>
+            {yesShare > 0 && (
+              <div
+                className="min-w-0 overflow-hidden flex items-center justify-center text-xs font-bold"
+                style={{
+                  width: `${yesShare * 100}%`,
+                  background: YES_GRADIENT,
+                  color: '#062f2a',
+                }}
+              >
+                YES · {Math.round(yesShare * 100)}%
+              </div>
+            )}
+            {noShare > 0 && (
+              <div
+                className="min-w-0 overflow-hidden flex items-center justify-center text-xs font-bold"
+                style={{
+                  width: `${noShare * 100}%`,
+                  background: NO_GRADIENT,
+                  color: '#2a0e16',
+                }}
+              >
+                NO · {Math.round(noShare * 100)}%
+              </div>
+            )}
           </div>
           <div className="flex justify-between text-[10px] text-fg-dim mt-1.5">
             <span>🍩 {yesPool} YES</span>
