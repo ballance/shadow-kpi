@@ -74,3 +74,53 @@ export async function listLockingSoon(
     return { market, pools, yourStake };
   });
 }
+
+export interface OpenPositionRow {
+  market: Market;
+  pools: { yes: number; no: number };
+  yourStake: { side: 'yes' | 'no'; amount: number };
+}
+
+export async function listOpenPositions(
+  db: Db,
+  args: { teamId: string; userId: string },
+): Promise<OpenPositionRow[]> {
+  const userBets = await db
+    .select({ marketId: betsTable.marketId })
+    .from(betsTable)
+    .innerJoin(markets, eq(betsTable.marketId, markets.id))
+    .where(
+      and(
+        eq(betsTable.userId, args.userId),
+        eq(markets.teamId, args.teamId),
+        inArray(markets.status, ['open', 'locked']),
+      ),
+    );
+
+  const marketIds = Array.from(new Set(userBets.map((r) => r.marketId)));
+  if (marketIds.length === 0) return [];
+
+  const [openMarkets, allBets] = await Promise.all([
+    db.select().from(markets).where(inArray(markets.id, marketIds))
+      .orderBy(asc(markets.lockupAt)),
+    db.select().from(betsTable).where(inArray(betsTable.marketId, marketIds)),
+  ]);
+
+  const betsByMarket = new Map<string, Bet[]>();
+  for (const b of allBets) {
+    const list = betsByMarket.get(b.marketId) ?? [];
+    list.push(b);
+    betsByMarket.set(b.marketId, list);
+  }
+
+  return openMarkets.map((market) => {
+    const marketBets = betsByMarket.get(market.id) ?? [];
+    const pools = aggregatePools(marketBets);
+    const userMarketBets = marketBets.filter((b) => b.userId === args.userId);
+    const side = userMarketBets[0].side;
+    const amount = userMarketBets
+      .filter((b) => b.side === side)
+      .reduce((acc, b) => acc + b.amount, 0);
+    return { market, pools, yourStake: { side, amount } };
+  });
+}
