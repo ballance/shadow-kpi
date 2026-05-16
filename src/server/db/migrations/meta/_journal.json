@@ -22,6 +22,13 @@
       "when": 1778720532259,
       "tag": "0002_vengeful_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778935745698,
+      "tag": "0003_bizarre_moondragon",
+      "breakpoints": true
     }
   ]
 }

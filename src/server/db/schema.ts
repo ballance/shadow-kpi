@@ -79,6 +79,7 @@ export const memberships = pgTable(
       .notNull()
       .references(() => teams.id, { onDelete: 'cascade' }),
     joinedAt: timestamp('joined_at').notNull().defaultNow(),
+    lastSeenAt: timestamp('last_seen_at'),
   },
   (m) => ({ pk: primaryKey({ columns: [m.userId, m.teamId] }) }),
 );
