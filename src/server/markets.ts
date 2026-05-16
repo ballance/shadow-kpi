@@ -94,6 +94,17 @@ export interface MarketDetail {
   bets: Bet[];
 }
 
+export function aggregatePools(allBets: Bet[]): { yes: number; no: number } {
+  return allBets.reduce(
+    (acc, b) => {
+      if (b.side === 'yes') acc.yes += b.amount;
+      else acc.no += b.amount;
+      return acc;
+    },
+    { yes: 0, no: 0 },
+  );
+}
+
 export async function getMarketDetail(
   db: Db,
   marketId: string,
@@ -106,14 +117,7 @@ export async function getMarketDetail(
     .from(betsTable)
     .where(eq(betsTable.marketId, marketId));
 
-  const pools = allBets.reduce(
-    (acc, b) => {
-      if (b.side === 'yes') acc.yes += b.amount;
-      else acc.no += b.amount;
-      return acc;
-    },
-    { yes: 0, no: 0 },
-  );
+  const pools = aggregatePools(allBets);
 
   return { market, pools, bets: allBets };
 }
