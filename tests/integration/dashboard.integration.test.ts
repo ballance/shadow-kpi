@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { startTestDb, type TestDbHandle } from '../helpers/db';
-import { users, teams, memberships, markets, bets } from '@/server/db/schema';
+import { users, teams, memberships, markets, bets, ledgerEntries } from '@/server/db/schema';
 import { __setNowForTests } from '@/server/time';
-import { listLockingSoon, listOpenPositions } from '@/server/dashboard';
+import { listLockingSoon, listOpenPositions, listResolvedSince } from '@/server/dashboard';
 
 describe('dashboard.listLockingSoon', () => {
   let handle: TestDbHandle;
@@ -213,6 +213,134 @@ describe('dashboard.listOpenPositions', () => {
       resolvesAt: new Date('2026-05-15T18:00:00Z'),
     });
     const rows = await listOpenPositions(handle.db, { teamId: 't1', userId: 'u2' });
+    expect(rows).toEqual([]);
+  });
+});
+
+describe('dashboard.listResolvedSince', () => {
+  let handle: TestDbHandle;
+
+  beforeAll(async () => { handle = await startTestDb(); });
+  afterAll(async () => { await handle.close(); __setNowForTests(null); });
+
+  beforeEach(async () => {
+    await handle.truncateAll();
+    __setNowForTests(new Date('2026-05-15T12:00:00Z'));
+    await handle.db.insert(users).values([
+      { id: 'u1', email: 'u1@example.com' },
+      { id: 'u2', email: 'u2@example.com' },
+    ]);
+    await handle.db.insert(teams).values({ id: 't1', name: 'T', inviteCode: 'inv1' });
+    await handle.db.insert(memberships).values([
+      { userId: 'u1', teamId: 't1' },
+      { userId: 'u2', teamId: 't1' },
+    ]);
+  });
+
+  it('returns markets resolved after `since` where caller had a stake', async () => {
+    await handle.db.insert(markets).values([
+      { id: 'recent-won', teamId: 't1', creatorId: 'u1', title: 'Won', description: null,
+        lockupAt: new Date('2026-05-15T10:00:00Z'),
+        resolvesAt: new Date('2026-05-15T11:00:00Z'),
+        status: 'resolved', outcome: 'yes',
+        resolvedAt: new Date('2026-05-15T11:30:00Z') },
+      { id: 'old-won', teamId: 't1', creatorId: 'u1', title: 'OldWon', description: null,
+        lockupAt: new Date('2026-05-14T10:00:00Z'),
+        resolvesAt: new Date('2026-05-14T11:00:00Z'),
+        status: 'resolved', outcome: 'yes',
+        resolvedAt: new Date('2026-05-14T11:30:00Z') },
+    ]);
+    await handle.db.insert(bets).values([
+      { marketId: 'recent-won', userId: 'u2', side: 'yes', amount: 3 },
+      { marketId: 'old-won', userId: 'u2', side: 'yes', amount: 3 },
+    ]);
+    await handle.db.insert(ledgerEntries).values([
+      { teamId: 't1', userId: 'u2', amount: -3, kind: 'stake', marketId: 'recent-won' },
+      { teamId: 't1', userId: 'u2', amount: 7, kind: 'payout', marketId: 'recent-won' },
+      { teamId: 't1', userId: 'u2', amount: -3, kind: 'stake', marketId: 'old-won' },
+      { teamId: 't1', userId: 'u2', amount: 7, kind: 'payout', marketId: 'old-won' },
+    ]);
+
+    const rows = await listResolvedSince(handle.db, {
+      teamId: 't1', userId: 'u2',
+      since: new Date('2026-05-15T00:00:00Z'),
+    });
+    expect(rows.map((r) => r.market.id)).toEqual(['recent-won']);
+    expect(rows[0].yourDelta).toBe(4); // -3 + 7
+  });
+
+  it('returns markets the caller created even without a stake', async () => {
+    await handle.db.insert(markets).values({
+      id: 'mine', teamId: 't1', creatorId: 'u2', title: 'Mine', description: null,
+      lockupAt: new Date('2026-05-15T10:00:00Z'),
+      resolvesAt: new Date('2026-05-15T11:00:00Z'),
+      status: 'resolved', outcome: 'no',
+      resolvedAt: new Date('2026-05-15T11:30:00Z'),
+    });
+    const rows = await listResolvedSince(handle.db, {
+      teamId: 't1', userId: 'u2',
+      since: new Date('2026-05-15T00:00:00Z'),
+    });
+    expect(rows.map((r) => r.market.id)).toEqual(['mine']);
+    expect(rows[0].yourDelta).toBe(0);
+  });
+
+  it('includes voided markets and reports delta of zero (stake + refund cancel)', async () => {
+    await handle.db.insert(markets).values({
+      id: 'voided', teamId: 't1', creatorId: 'u1', title: 'V', description: null,
+      lockupAt: new Date('2026-05-15T10:00:00Z'),
+      resolvesAt: new Date('2026-05-15T11:00:00Z'),
+      status: 'voided', outcome: null,
+      resolvedAt: new Date('2026-05-15T11:30:00Z'),
+    });
+    await handle.db.insert(bets).values({
+      marketId: 'voided', userId: 'u2', side: 'yes', amount: 4,
+    });
+    await handle.db.insert(ledgerEntries).values([
+      { teamId: 't1', userId: 'u2', amount: -4, kind: 'stake', marketId: 'voided' },
+      { teamId: 't1', userId: 'u2', amount: 4, kind: 'refund', marketId: 'voided' },
+    ]);
+    const rows = await listResolvedSince(handle.db, {
+      teamId: 't1', userId: 'u2',
+      since: new Date('2026-05-15T00:00:00Z'),
+    });
+    expect(rows.map((r) => r.market.id)).toEqual(['voided']);
+    expect(rows[0].yourDelta).toBe(0);
+  });
+
+  it('returns negative delta when caller lost', async () => {
+    await handle.db.insert(markets).values({
+      id: 'lost', teamId: 't1', creatorId: 'u1', title: 'L', description: null,
+      lockupAt: new Date('2026-05-15T10:00:00Z'),
+      resolvesAt: new Date('2026-05-15T11:00:00Z'),
+      status: 'resolved', outcome: 'no',
+      resolvedAt: new Date('2026-05-15T11:30:00Z'),
+    });
+    await handle.db.insert(bets).values({
+      marketId: 'lost', userId: 'u2', side: 'yes', amount: 5,
+    });
+    await handle.db.insert(ledgerEntries).values({
+      teamId: 't1', userId: 'u2', amount: -5, kind: 'stake', marketId: 'lost',
+    });
+    const rows = await listResolvedSince(handle.db, {
+      teamId: 't1', userId: 'u2',
+      since: new Date('2026-05-15T00:00:00Z'),
+    });
+    expect(rows[0].yourDelta).toBe(-5);
+  });
+
+  it('excludes resolved markets the caller had no stake in and did not create', async () => {
+    await handle.db.insert(markets).values({
+      id: 'other', teamId: 't1', creatorId: 'u1', title: 'O', description: null,
+      lockupAt: new Date('2026-05-15T10:00:00Z'),
+      resolvesAt: new Date('2026-05-15T11:00:00Z'),
+      status: 'resolved', outcome: 'yes',
+      resolvedAt: new Date('2026-05-15T11:30:00Z'),
+    });
+    const rows = await listResolvedSince(handle.db, {
+      teamId: 't1', userId: 'u2',
+      since: new Date('2026-05-15T00:00:00Z'),
+    });
     expect(rows).toEqual([]);
   });
 });

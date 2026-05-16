@@ -1,6 +1,6 @@
-import { and, asc, eq, gt, inArray, lte } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '@/server/db/client';
-import { markets, bets as betsTable, type Market, type Bet } from '@/server/db/schema';
+import { markets, bets as betsTable, ledgerEntries, type Market, type Bet } from '@/server/db/schema';
 import { aggregatePools } from '@/server/markets';
 import { now } from '@/server/time';
 
@@ -123,4 +123,65 @@ export async function listOpenPositions(
       .reduce((acc, b) => acc + b.amount, 0);
     return { market, pools, yourStake: { side, amount } };
   });
+}
+
+export interface ResolvedAwayRow {
+  market: Market;
+  yourDelta: number;
+}
+
+export async function listResolvedSince(
+  db: Db,
+  args: { teamId: string; userId: string; since: Date },
+): Promise<ResolvedAwayRow[]> {
+  const userBetMarketIds = (
+    await db
+      .selectDistinct({ marketId: betsTable.marketId })
+      .from(betsTable)
+      .innerJoin(markets, eq(betsTable.marketId, markets.id))
+      .where(and(eq(betsTable.userId, args.userId), eq(markets.teamId, args.teamId)))
+  ).map((r) => r.marketId);
+
+  const candidates = await db
+    .select()
+    .from(markets)
+    .where(
+      and(
+        eq(markets.teamId, args.teamId),
+        inArray(markets.status, ['resolved', 'voided']),
+        gt(markets.resolvedAt, args.since),
+        or(
+          eq(markets.creatorId, args.userId),
+          userBetMarketIds.length > 0 ? inArray(markets.id, userBetMarketIds) : sql`false`,
+        ),
+      ),
+    )
+    .orderBy(asc(markets.resolvedAt));
+
+  if (candidates.length === 0) return [];
+
+  const candidateIds = candidates.map((m) => m.id);
+  const entries = await db
+    .select({
+      marketId: ledgerEntries.marketId,
+      amount: ledgerEntries.amount,
+    })
+    .from(ledgerEntries)
+    .where(
+      and(
+        eq(ledgerEntries.userId, args.userId),
+        inArray(ledgerEntries.marketId, candidateIds),
+      ),
+    );
+
+  const deltaByMarket = new Map<string, number>();
+  for (const e of entries) {
+    if (!e.marketId) continue;
+    deltaByMarket.set(e.marketId, (deltaByMarket.get(e.marketId) ?? 0) + e.amount);
+  }
+
+  return candidates.map((market) => ({
+    market,
+    yourDelta: deltaByMarket.get(market.id) ?? 0,
+  }));
 }
