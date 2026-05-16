@@ -2,7 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { startTestDb, type TestDbHandle } from '../helpers/db';
 import { users, teams, memberships, markets, bets, ledgerEntries } from '@/server/db/schema';
 import { __setNowForTests } from '@/server/time';
-import { listLockingSoon, listOpenPositions, listResolvedSince } from '@/server/dashboard';
+import { listLockingSoon, listOpenPositions, listResolvedSince, readAndAdvanceLastSeen } from '@/server/dashboard';
+import { eq, and } from 'drizzle-orm';
 
 describe('dashboard.listLockingSoon', () => {
   let handle: TestDbHandle;
@@ -342,5 +343,62 @@ describe('dashboard.listResolvedSince', () => {
       since: new Date('2026-05-15T00:00:00Z'),
     });
     expect(rows).toEqual([]);
+  });
+});
+
+describe('dashboard.readAndAdvanceLastSeen', () => {
+  let handle: TestDbHandle;
+
+  beforeAll(async () => { handle = await startTestDb(); });
+  afterAll(async () => { await handle.close(); __setNowForTests(null); });
+
+  beforeEach(async () => {
+    await handle.truncateAll();
+    await handle.db.insert(users).values({ id: 'u1', email: 'u1@example.com' });
+    await handle.db.insert(teams).values({ id: 't1', name: 'T', inviteCode: 'inv1' });
+    await handle.db.insert(memberships).values({ userId: 'u1', teamId: 't1' });
+  });
+
+  it('returns previous=null on first read and advances the cursor', async () => {
+    __setNowForTests(new Date('2026-05-15T12:00:00Z'));
+    const result = await readAndAdvanceLastSeen(handle.db, { userId: 'u1', teamId: 't1' });
+    expect(result.previous).toBeNull();
+    expect(result.advanced).toBe(true);
+
+    const [row] = await handle.db
+      .select()
+      .from(memberships)
+      .where(and(eq(memberships.userId, 'u1'), eq(memberships.teamId, 't1')));
+    expect(row.lastSeenAt?.toISOString()).toBe('2026-05-15T12:00:00.000Z');
+  });
+
+  it('returns the previous value and advances when stale', async () => {
+    __setNowForTests(new Date('2026-05-15T12:00:00Z'));
+    await handle.db
+      .update(memberships)
+      .set({ lastSeenAt: new Date('2026-05-15T11:00:00Z') })
+      .where(and(eq(memberships.userId, 'u1'), eq(memberships.teamId, 't1')));
+
+    const result = await readAndAdvanceLastSeen(handle.db, { userId: 'u1', teamId: 't1' });
+    expect(result.previous?.toISOString()).toBe('2026-05-15T11:00:00.000Z');
+    expect(result.advanced).toBe(true);
+  });
+
+  it('does not advance when previous is fresh (<30min)', async () => {
+    __setNowForTests(new Date('2026-05-15T12:00:00Z'));
+    await handle.db
+      .update(memberships)
+      .set({ lastSeenAt: new Date('2026-05-15T11:45:00Z') })
+      .where(and(eq(memberships.userId, 'u1'), eq(memberships.teamId, 't1')));
+
+    const result = await readAndAdvanceLastSeen(handle.db, { userId: 'u1', teamId: 't1' });
+    expect(result.previous?.toISOString()).toBe('2026-05-15T11:45:00.000Z');
+    expect(result.advanced).toBe(false);
+
+    const [row] = await handle.db
+      .select()
+      .from(memberships)
+      .where(and(eq(memberships.userId, 'u1'), eq(memberships.teamId, 't1')));
+    expect(row.lastSeenAt?.toISOString()).toBe('2026-05-15T11:45:00.000Z');
   });
 });

@@ -1,6 +1,6 @@
 import { and, asc, eq, gt, inArray, lte, or, sql } from 'drizzle-orm';
 import type { Db } from '@/server/db/client';
-import { markets, bets as betsTable, ledgerEntries, type Market, type Bet } from '@/server/db/schema';
+import { markets, bets as betsTable, ledgerEntries, memberships, type Market, type Bet } from '@/server/db/schema';
 import { aggregatePools } from '@/server/markets';
 import { now } from '@/server/time';
 
@@ -184,4 +184,33 @@ export async function listResolvedSince(
     market,
     yourDelta: deltaByMarket.get(market.id) ?? 0,
   }));
+}
+
+export interface ReadAndAdvanceResult {
+  previous: Date | null;
+  advanced: boolean;
+}
+
+export async function readAndAdvanceLastSeen(
+  db: Db,
+  args: { userId: string; teamId: string },
+): Promise<ReadAndAdvanceResult> {
+  const [row] = await db
+    .select({ lastSeenAt: memberships.lastSeenAt })
+    .from(memberships)
+    .where(and(eq(memberships.userId, args.userId), eq(memberships.teamId, args.teamId)))
+    .limit(1);
+
+  const previous = row?.lastSeenAt ?? null;
+  const current = now();
+  if (!shouldAdvanceLastSeen(previous, current)) {
+    return { previous, advanced: false };
+  }
+
+  await db
+    .update(memberships)
+    .set({ lastSeenAt: current })
+    .where(and(eq(memberships.userId, args.userId), eq(memberships.teamId, args.teamId)));
+
+  return { previous, advanced: true };
 }
