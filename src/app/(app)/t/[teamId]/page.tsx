@@ -7,16 +7,27 @@ import { teams } from '@/server/db/schema';
 import { getBalance, getSpendableAllowance } from '@/server/ledger';
 import { rotateInviteCode } from '@/server/teams';
 import { listMarketsForTeam } from '@/server/markets';
+import {
+  listLockingSoon,
+  listOpenPositions,
+  listResolvedSince,
+  readAndAdvanceLastSeen,
+} from '@/server/dashboard';
 import { DomainError } from '@/server/errors';
+import { now } from '@/server/time';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusPill } from '@/components/status-pill';
 import { EmptyState } from '@/components/empty-state';
+import { DashboardSection } from '@/components/dashboard/dashboard-section';
+import { MarketRow } from '@/components/dashboard/market-row';
 
 interface TeamPageProps {
   params: Promise<{ teamId: string }>;
   searchParams: Promise<{ status?: string }>;
 }
+
+const FIRST_VISIT_LOOKBACK_DAYS = 7;
 
 export default async function TeamDashboardPage({ params, searchParams }: TeamPageProps) {
   const { teamId } = await params;
@@ -26,14 +37,25 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
   const session = await auth();
   if (!session?.user) return null;
 
+  const userId = session.user.id;
+
   const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
   if (!team) return null;
 
-  const [balance, allowance, marketRows] = await Promise.all([
-    getBalance(db, { userId: session.user.id, teamId }),
-    getSpendableAllowance(db, { userId: session.user.id, teamId }),
-    listMarketsForTeam(db, teamId),
-  ]);
+  const lastSeen = await readAndAdvanceLastSeen(db, { userId, teamId });
+  const sinceForResolved =
+    lastSeen.previous ??
+    new Date(now().getTime() - FIRST_VISIT_LOOKBACK_DAYS * 24 * 60 * 60_000);
+
+  const [balance, allowance, lockingSoon, openPositions, resolvedAway, marketRows] =
+    await Promise.all([
+      getBalance(db, { userId, teamId }),
+      getSpendableAllowance(db, { userId, teamId }),
+      listLockingSoon(db, { teamId, userId }),
+      listOpenPositions(db, { teamId, userId }),
+      listResolvedSince(db, { teamId, userId, since: sinceForResolved }),
+      listMarketsForTeam(db, teamId),
+    ]);
 
   async function rotateAction() {
     'use server';
@@ -63,6 +85,9 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
             <Link href={`/t/${teamId}/me`}>My profile</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
+            <Link href={`/t/${teamId}/activity`}>Activity</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
             <Link href={`/t/${teamId}/leaderboard`}>Leaderboard</Link>
           </Button>
         </div>
@@ -81,30 +106,96 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
 
         <Card>
           <CardContent className="py-4">
-            <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">Invite link</div>
-            <code className="block mt-2 break-all rounded-md bg-bg border border-border-strong px-2 py-1.5 text-[11px] font-mono text-fg-muted">
-              {inviteUrl}
-            </code>
-            <form action={rotateAction} className="mt-2">
-              <Button type="submit" variant="ghost" size="sm" className="text-accent hover:text-accent">
-                ↻ Rotate code
+            <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">
+              New market
+            </div>
+            <div className="mt-2">
+              <Button asChild size="sm">
+                <Link href={`/t/${teamId}/markets/new`}>Ask a question</Link>
               </Button>
-            </form>
+            </div>
           </CardContent>
         </Card>
       </div>
 
+      {lockingSoon.length > 0 && (
+        <DashboardSection title="Locking soon" hint="Place a stake before the window closes.">
+          <ul className="divide-y divide-border" data-testid="locking-soon-list">
+            {lockingSoon.map((row) => (
+              <li key={row.market.id}>
+                <MarketRow
+                  variant="lockingSoon"
+                  teamId={teamId}
+                  market={row.market}
+                  pools={row.pools}
+                  yourStake={row.yourStake}
+                />
+              </li>
+            ))}
+          </ul>
+        </DashboardSection>
+      )}
+
+      {openPositions.length > 0 && (
+        <DashboardSection title="Your open positions">
+          <ul className="divide-y divide-border" data-testid="your-positions-list">
+            {openPositions.map((row) => (
+              <li key={row.market.id}>
+                <MarketRow
+                  variant="position"
+                  teamId={teamId}
+                  market={row.market}
+                  pools={row.pools}
+                  yourStake={row.yourStake}
+                />
+              </li>
+            ))}
+          </ul>
+        </DashboardSection>
+      )}
+
+      {resolvedAway.length > 0 && (
+        <DashboardSection
+          title="Resolved while you were away"
+          hint={
+            lastSeen.previous
+              ? `Since your last visit on ${lastSeen.previous.toLocaleDateString()}.`
+              : `In the last ${FIRST_VISIT_LOOKBACK_DAYS} days.`
+          }
+        >
+          <ul className="divide-y divide-border" data-testid="resolved-away-list">
+            {resolvedAway.map((row) => (
+              <li key={row.market.id}>
+                <MarketRow
+                  variant="resolved"
+                  teamId={teamId}
+                  market={row.market}
+                  yourDelta={row.yourDelta}
+                />
+              </li>
+            ))}
+          </ul>
+        </DashboardSection>
+      )}
+
       <Card>
         <CardHeader className="flex-row items-center justify-between flex-wrap gap-2 p-4">
-          <CardTitle>Markets</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/t/${teamId}/activity`}>Activity</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href={`/t/${teamId}/markets/new`}>New market</Link>
-            </Button>
-          </div>
+          <CardTitle className="text-sm">All markets</CardTitle>
+          <details className="text-xs">
+            <summary className="cursor-pointer text-fg-dim hover:text-fg select-none">
+              ▾ Invite link
+            </summary>
+            <div className="mt-2 flex flex-col gap-2">
+              <code className="block break-all rounded-md bg-bg border border-border-strong px-2 py-1.5 text-[11px] font-mono text-fg-muted">
+                {inviteUrl}
+              </code>
+              <form action={rotateAction}>
+                <Button type="submit" variant="ghost" size="sm" className="text-accent hover:text-accent">
+                  ↻ Rotate code
+                </Button>
+              </form>
+            </div>
+          </details>
         </CardHeader>
         <div className="flex gap-4 px-4 border-b border-border overflow-x-auto">
           {(['open', 'closed', 'all'] as const).map((t) => (
