@@ -24,11 +24,13 @@ test('founder creates market, bettor bets, founder resolves, balance updates', a
   await founder.waitForURL(/\/t\/[^/]+$/);
   const teamUrl = founder.url();
 
-  const inviteUrl = await founder
-    .locator('code')
-    .filter({ hasText: /\/join\// })
-    .first()
-    .innerText();
+  const inviteUrl = (
+    await founder
+      .locator('code')
+      .filter({ hasText: /\/join\// })
+      .first()
+      .textContent()
+  )?.trim() ?? '';
 
   const joinerCtx = await browser.newContext();
   const joiner = await joinerCtx.newPage();
@@ -39,7 +41,7 @@ test('founder creates market, bettor bets, founder resolves, balance updates', a
   await joiner.waitForURL(/\/t\/[^/]+$/);
 
   await founder.goto(teamUrl);
-  await founder.getByRole('link', { name: 'New market' }).click();
+  await founder.getByRole('link', { name: 'Ask a question' }).click();
   await founder.getByLabel('Title').fill('Will this test pass?');
 
   const toLocal = (offsetSec: number): string => {
@@ -53,6 +55,11 @@ test('founder creates market, bettor bets, founder resolves, balance updates', a
   await founder.waitForURL((url) => /\/markets\//.test(url.pathname) && !url.pathname.endsWith('/new'));
   const marketUrl = founder.url();
 
+  // Point A: founder returns to team dashboard — market locks in ~1 h, so "Locking soon" appears
+  await founder.goto(teamUrl);
+  await expect(founder.getByText('Locking soon')).toBeVisible();
+  await expect(founder.getByTestId('locking-soon-list')).toBeVisible();
+
   await joiner.goto(marketUrl);
   await joiner.getByLabel('Amount (🍩)').fill('3');
   await joiner.getByRole('button', { name: 'Bet Yes' }).click();
@@ -61,6 +68,10 @@ test('founder creates market, bettor bets, founder resolves, balance updates', a
 
   await joiner.goto(teamUrl);
   await expect(joiner.getByText('🍩 9').first()).toBeVisible();
+
+  // Point B: joiner has placed a bet — "Your open positions" should appear
+  await expect(joiner.getByText('Your open positions')).toBeVisible();
+  await expect(joiner.getByTestId('your-positions-list')).toBeVisible();
 
   const sql = postgres(E2E_DATABASE_URL, { max: 1 });
   await sql`UPDATE market SET lockup_at = NOW() - interval '1 minute', resolves_at = NOW() - interval '30 seconds'`;
@@ -78,6 +89,10 @@ test('founder creates market, bettor bets, founder resolves, balance updates', a
 
   await joiner.goto(teamUrl);
   await expect(joiner.getByText('🍩 12').first()).toBeVisible();
+
+  // Point C: market resolved since joiner's last dashboard visit — "Resolved while you were away" appears
+  await expect(joiner.getByText('Resolved while you were away')).toBeVisible();
+  await expect(joiner.getByTestId('resolved-away-list')).toBeVisible();
 
   await joiner.goto(marketUrl);
   await expect(joiner.getByText(/Joiner/)).toBeVisible();
