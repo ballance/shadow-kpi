@@ -41,7 +41,7 @@ test('founder creates market, bettor bets, founder resolves, balance updates', a
   await joiner.waitForURL(/\/t\/[^/]+$/);
 
   await founder.goto(teamUrl);
-  await founder.getByRole('link', { name: 'Ask a question' }).click();
+  await founder.getByRole('link', { name: 'New market' }).click();
   await founder.getByLabel('Title').fill('Will this test pass?');
 
   const toLocal = (offsetSec: number): string => {
