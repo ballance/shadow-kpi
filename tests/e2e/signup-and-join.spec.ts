@@ -26,11 +26,13 @@ test('founder creates a team and a second user joins via invite', async ({
   await founder.waitForURL(/\/t\/[^/]+$/);
 
   await expect(founder.getByText('🍩 12').first()).toBeVisible();
-  const inviteUrl = await founder
-    .locator('code')
-    .filter({ hasText: /\/join\// })
-    .first()
-    .innerText();
+  const inviteUrl = (
+    await founder
+      .locator('code')
+      .filter({ hasText: /\/join\// })
+      .first()
+      .textContent()
+  )?.trim() ?? '';
   expect(inviteUrl).toContain('/join/');
 
   const joinerCtx = await browser.newContext();

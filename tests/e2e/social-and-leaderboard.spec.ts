@@ -23,11 +23,13 @@ test('two users exchange comments, see notifications, browse profile + activity'
   await founder.waitForURL((url) => /\/t\//.test(url.pathname) && !url.pathname.endsWith('/new'));
   const teamUrl = founder.url();
 
-  const inviteUrl = await founder
-    .locator('code')
-    .filter({ hasText: /\/join\// })
-    .first()
-    .innerText();
+  const inviteUrl = (
+    await founder
+      .locator('code')
+      .filter({ hasText: /\/join\// })
+      .first()
+      .textContent()
+  )?.trim() ?? '';
 
   const joinerCtx = await browser.newContext();
   const joiner = await joinerCtx.newPage();

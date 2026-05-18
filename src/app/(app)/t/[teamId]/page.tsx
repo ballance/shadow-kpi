@@ -181,7 +181,7 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
       <Card>
         <CardHeader className="flex-row items-center justify-between flex-wrap gap-2 p-4">
           <CardTitle className="text-sm">All markets</CardTitle>
-          <details open className="text-xs">
+          <details className="text-xs">
             <summary className="cursor-pointer text-fg-dim hover:text-fg select-none">
               ▾ Invite link
             </summary>

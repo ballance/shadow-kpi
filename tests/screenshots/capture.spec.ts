@@ -57,11 +57,13 @@ test('capture readme screenshots', async ({ browser }) => {
   await founder.getByRole('button', { name: 'Create team' }).click();
   await founder.waitForURL((url) => /\/t\//.test(url.pathname) && !url.pathname.endsWith('/new'));
   const teamUrl = founder.url();
-  const inviteUrl = await founder
-    .locator('code')
-    .filter({ hasText: /\/join\// })
-    .first()
-    .innerText();
+  const inviteUrl = (
+    await founder
+      .locator('code')
+      .filter({ hasText: /\/join\// })
+      .first()
+      .textContent()
+  )?.trim() ?? '';
 
   // Joiner 1
   const j1Ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });

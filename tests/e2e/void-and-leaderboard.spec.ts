@@ -23,11 +23,13 @@ test('founder voids a market with bets — joiner gets refund and shows up on le
   await founder.waitForURL((url) => /\/t\//.test(url.pathname) && !url.pathname.endsWith('/new'));
   const teamUrl = founder.url();
 
-  const inviteUrl = await founder
-    .locator('code')
-    .filter({ hasText: /\/join\// })
-    .first()
-    .innerText();
+  const inviteUrl = (
+    await founder
+      .locator('code')
+      .filter({ hasText: /\/join\// })
+      .first()
+      .textContent()
+  )?.trim() ?? '';
 
   const joinerCtx = await browser.newContext();
   const joiner = await joinerCtx.newPage();
