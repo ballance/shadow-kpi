@@ -46,3 +46,19 @@ setImmediate(() => {
     console.error('Failed to register notification subscriber', err);
   });
 });
+
+// Register Slack outbox subscriber.
+// Same deferral pattern: avoids requiring SLACK env vars at module load in tests.
+setImmediate(() => {
+  if (!process.env.DATABASE_URL) return;
+  const baseUrl = process.env.SLACK_APP_PUBLIC_URL ?? process.env.NEXTAUTH_URL;
+  if (!baseUrl) return;
+  Promise.all([
+    import('@/server/slack/events-subscriber'),
+    import('@/server/db/client'),
+  ]).then(([{ slackOutboxSubscriber }, { db: productionDb }]) => {
+    eventBus.subscribe(slackOutboxSubscriber(productionDb, { baseUrl }));
+  }).catch((err) => {
+    console.error('Failed to register slack outbox subscriber', err);
+  });
+});
