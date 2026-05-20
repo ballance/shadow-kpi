@@ -7,6 +7,7 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // Auth.js v5 with DrizzleAdapter — required tables.
 export const users = pgTable('user', {
@@ -212,3 +213,98 @@ export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
+
+// ─── Slack integration ────────────────────────────────────────────────────
+
+export const slackInstalls = pgTable(
+  'slack_install',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    workspaceId: text('workspace_id').notNull(),
+    workspaceName: text('workspace_name').notNull(),
+    botTokenCiphertext: text('bot_token_ciphertext').notNull(),
+    botTokenIv: text('bot_token_iv').notNull(),
+    botUserId: text('bot_user_id').notNull(),
+    installerUserId: text('installer_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    installedAt: timestamp('installed_at').notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at'),
+  },
+  (t) => ({
+    workspaceIdIdx: uniqueIndex('slack_install_workspace_id_idx').on(t.workspaceId),
+  }),
+);
+
+export const slackTeamChannels = pgTable(
+  'slack_team_channel',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    teamId: text('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    workspaceId: text('workspace_id').notNull(),
+    channelId: text('channel_id').notNull(),
+    channelName: text('channel_name').notNull(),
+    configuredByUserId: text('configured_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    configuredAt: timestamp('configured_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    teamIdIdx: uniqueIndex('slack_team_channel_team_id_idx').on(t.teamId),
+  }),
+);
+
+export const slackUserLinks = pgTable(
+  'slack_user_link',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    workspaceId: text('workspace_id').notNull(),
+    slackUserId: text('slack_user_id').notNull(),
+    linkedAt: timestamp('linked_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    userWorkspaceIdx: uniqueIndex('slack_user_link_user_workspace_idx').on(
+      t.userId,
+      t.workspaceId,
+    ),
+  }),
+);
+
+export const slackOutbox = pgTable(
+  'slack_outbox',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    workspaceId: text('workspace_id').notNull(),
+    targetKind: text('target_kind', { enum: ['channel', 'dm'] }).notNull(),
+    targetId: text('target_id').notNull(),
+    payload: text('payload').notNull(), // JSON string: { blocks, text }
+    dedupKey: text('dedup_key'),
+    status: text('status', { enum: ['pending', 'sent', 'failed_permanent'] })
+      .notNull()
+      .default('pending'),
+    attempts: integer('attempts').notNull().default(0),
+    nextAttemptAt: timestamp('next_attempt_at').notNull().defaultNow(),
+    sentAt: timestamp('sent_at'),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    pendingIdx: index('slack_outbox_pending_idx')
+      .on(t.status, t.nextAttemptAt)
+      .where(sql`status = 'pending'`),
+    dedupKeyIdx: uniqueIndex('slack_outbox_dedup_key_idx')
+      .on(t.dedupKey)
+      .where(sql`dedup_key IS NOT NULL`),
+  }),
+);
+
+export type SlackInstall = typeof slackInstalls.$inferSelect;
+export type SlackTeamChannel = typeof slackTeamChannels.$inferSelect;
+export type SlackUserLink = typeof slackUserLinks.$inferSelect;
+export type SlackOutboxRow = typeof slackOutbox.$inferSelect;
+export type SlackOutboxInsert = typeof slackOutbox.$inferInsert;
