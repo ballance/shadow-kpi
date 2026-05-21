@@ -77,13 +77,36 @@ export async function drainOutbox(
   let scanned = 0;
 
   while (Date.now() < deadline) {
+    // Claim rows by pushing next_attempt_at forward by a 5-minute lease.
+    // Other drain runs skip rows whose lease hasn't expired. If this run
+    // crashes mid-flight, the lease expires and the next drain picks the
+    // rows back up.
+    //
+    // The UPDATE+CTE shape is critical: FOR UPDATE SKIP LOCKED inside an
+    // autocommit SELECT only holds locks until the statement returns —
+    // which means by the time we'd loop and call markRow, the locks are
+    // long gone and a concurrent drain could pick up the same rows. By
+    // wrapping the SELECT in a single UPDATE statement we guarantee
+    // atomic claim: the lock is held for the duration of the UPDATE, and
+    // the moved next_attempt_at is the new exclusion signal.
     const raw = await db.execute<OutboxRow>(sql`
-      SELECT id, workspace_id, target_kind, target_id, payload, attempts
-      FROM slack_outbox
-      WHERE status = 'pending' AND next_attempt_at <= now()
-      ORDER BY workspace_id, created_at
-      LIMIT ${opts.batchLimit}
-      FOR UPDATE SKIP LOCKED
+      WITH claimed AS (
+        SELECT id FROM slack_outbox
+        WHERE status = 'pending' AND next_attempt_at <= now()
+        ORDER BY workspace_id, created_at
+        LIMIT ${opts.batchLimit}
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE slack_outbox
+      SET next_attempt_at = now() + interval '5 minutes'
+      FROM claimed
+      WHERE slack_outbox.id = claimed.id
+      RETURNING slack_outbox.id,
+                slack_outbox.workspace_id,
+                slack_outbox.target_kind,
+                slack_outbox.target_id,
+                slack_outbox.payload,
+                slack_outbox.attempts
     `);
 
     // postgres-js drizzle returns the array directly (iterable of row objects)
