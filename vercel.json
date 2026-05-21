@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/slack-drain",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }

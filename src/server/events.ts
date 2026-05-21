@@ -53,11 +53,20 @@ setImmediate(() => {
   if (!process.env.DATABASE_URL) return;
   const baseUrl = process.env.SLACK_APP_PUBLIC_URL ?? process.env.NEXTAUTH_URL;
   if (!baseUrl) return;
+  const tokenEncKey = process.env.SLACK_TOKEN_ENC_KEY;
   Promise.all([
     import('@/server/slack/events-subscriber'),
+    import('@/server/slack/api'),
     import('@/server/db/client'),
-  ]).then(([{ slackOutboxSubscriber }, { db: productionDb }]) => {
-    eventBus.subscribe(slackOutboxSubscriber(productionDb, { baseUrl }));
+  ]).then(([{ slackOutboxSubscriber }, { slackHttpClient }, { db: productionDb }]) => {
+    eventBus.subscribe(
+      slackOutboxSubscriber(productionDb, {
+        baseUrl,
+        inlineDrain: tokenEncKey
+          ? { api: slackHttpClient, tokenEncKey }
+          : undefined,
+      }),
+    );
   }).catch((err) => {
     console.error('Failed to register slack outbox subscriber', err);
   });

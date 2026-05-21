@@ -5,7 +5,8 @@ import {
   bets, markets, slackInstalls, slackTeamChannels,
   slackUserLinks, users, teams, ledgerEntries,
 } from '@/server/db/schema';
-import { enqueueOutboxMessages, type EnqueueInput } from './outbox';
+import { drainOutbox, enqueueOutboxMessages, type EnqueueInput } from './outbox';
+import type { SlackApiClient } from './api';
 import {
   marketCreatedChannel, marketLockedChannel, marketLockedDm,
   marketResolvedChannel, marketResolvedDmWinner, marketResolvedDmLoser,
@@ -14,6 +15,16 @@ import {
 
 export interface SubscriberConfig {
   baseUrl: string;
+  // Inline drain after each enqueue. Vercel Hobby caps cron jobs at daily
+  // frequency, so the bundled /api/cron/slack-drain endpoint only runs once
+  // a day as a backstop. When `inlineDrain` is set, the subscriber fires a
+  // fire-and-forget drain immediately after writing outbox rows, giving
+  // sub-second happy-path latency. The lease-based claim in drainOutbox
+  // makes concurrent drain runs safe.
+  inlineDrain?: {
+    api: SlackApiClient;
+    tokenEncKey: string;
+  };
 }
 
 interface TeamContext {
@@ -100,6 +111,22 @@ async function loadMarket(db: Db, marketId: string) {
   return m ?? null;
 }
 
+function triggerInlineDrain(db: Db, cfg: SubscriberConfig): void {
+  if (!cfg.inlineDrain) return;
+  const { api, tokenEncKey } = cfg.inlineDrain;
+  // Fire-and-forget. Errors are logged; outbox rows stay pending and the
+  // daily cron / next event's inline drain will retry.
+  void drainOutbox(db, {
+    api,
+    tokenEncKey,
+    batchLimit: 50,
+    wallClockBudgetMs: 5_000,
+    sendIntervalMs: 1100,
+  }).catch((err) => {
+    console.error('inline slack drain failed', err);
+  });
+}
+
 export function slackOutboxSubscriber(db: Db, cfg: SubscriberConfig) {
   return async (event: DomainEvent): Promise<void> => {
     switch (event.type) {
@@ -125,6 +152,7 @@ export function slackOutboxSubscriber(db: Db, cfg: SubscriberConfig) {
             dedupKey: `MarketCreated:${m.id}:channel`,
           },
         ]);
+        triggerInlineDrain(db, cfg);
         return;
       }
       case 'MarketLocked': {
@@ -177,6 +205,7 @@ export function slackOutboxSubscriber(db: Db, cfg: SubscriberConfig) {
           });
         }
         await enqueueOutboxMessages(db, messages);
+        triggerInlineDrain(db, cfg);
         return;
       }
       case 'MarketResolved': {
@@ -275,6 +304,7 @@ export function slackOutboxSubscriber(db: Db, cfg: SubscriberConfig) {
           });
         }
         await enqueueOutboxMessages(db, messages);
+        triggerInlineDrain(db, cfg);
         return;
       }
       case 'MarketVoided': {
@@ -302,6 +332,7 @@ export function slackOutboxSubscriber(db: Db, cfg: SubscriberConfig) {
           });
         }
         await enqueueOutboxMessages(db, messages);
+        triggerInlineDrain(db, cfg);
         return;
       }
       case 'CommentPosted':
