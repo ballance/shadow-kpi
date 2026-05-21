@@ -182,4 +182,24 @@ For a team of <50 doughnut-betters, you're free indefinitely.
 
 ---
 
+## Slack integration
+
+The Slack bot is optional. Skip this section if you don't want one.
+
+1. **Create a Slack app** at https://api.slack.com/apps → *Create New App* → *From scratch*. Pick any name and a workspace to install during testing.
+2. **OAuth & Permissions** → *Bot Token Scopes*. Add: `chat:write`, `chat:write.public`, `im:write`, `team:read`, `users:read`, `channels:read`.
+3. **OAuth & Permissions** → *Redirect URLs*. Add both:
+   - `https://<your-domain>/api/slack/oauth/callback`
+   - `https://<your-domain>/api/slack/link/callback`
+4. **Event Subscriptions** → enable, set the *Request URL* to `https://<your-domain>/api/slack/events`, then subscribe to the `app_uninstalled` bot event.
+5. **Basic Information** → copy *Client ID*, *Client Secret*, and *Signing Secret*. Generate the token encryption key locally:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   ```
+6. Set these env vars in your deployment (Vercel, etc.): `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`, `SLACK_TOKEN_ENC_KEY`. Optionally set `SLACK_APP_PUBLIC_URL` if it differs from `NEXTAUTH_URL`.
+
+A new cron entry at `/api/cron/slack-drain` (every minute) is already in `vercel.json` and will run automatically once deployed.
+
+---
+
 ## When you're ready, send a screenshot of your first market resolution. I want to see what your team bet on.

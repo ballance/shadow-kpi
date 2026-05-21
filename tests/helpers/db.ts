@@ -29,6 +29,10 @@ export async function startTestDb(): Promise<TestDbHandle> {
   await migrate(db, { migrationsFolder: './src/server/db/migrations' });
 
   const tables = [
+    'slack_outbox',
+    'slack_user_link',
+    'slack_team_channel',
+    'slack_install',
     'ledger_entry',
     'bet',
     'notification',
