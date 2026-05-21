@@ -3,7 +3,7 @@ import { auth } from '@/server/auth';
 import { db } from '@/server/db/client';
 import { upsertInstall } from '@/server/slack/install';
 import { verifyStateToken, type InstallStatePayload } from '@/server/slack/state';
-import { slackClient } from '@/server/slack/api';
+import { slackHttpClient } from '@/server/slack/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
   }
 
   const redirectUri = `${publicUrl}/api/slack/oauth/callback`;
-  const exchange = await slackClient.oauthV2Access({
+  const exchange = await slackHttpClient.oauthV2Access({
     clientId, clientSecret, code, redirectUri,
   });
   if (!exchange.ok || !exchange.accessToken) {

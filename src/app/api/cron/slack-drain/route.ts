@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/server/db/client';
 import { drainOutbox } from '@/server/slack/outbox';
-import { slackClient } from '@/server/slack/api';
+import { slackHttpClient } from '@/server/slack/api';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   const result = await drainOutbox(db, {
-    api: slackClient,
+    api: slackHttpClient,
     tokenEncKey,
     batchLimit: 200,
     wallClockBudgetMs: 50_000,
