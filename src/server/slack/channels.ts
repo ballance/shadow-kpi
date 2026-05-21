@@ -47,25 +47,19 @@ export async function setTeamChannel(
     configuredByUserId: string;
   },
 ): Promise<void> {
-  const existing = await db
-    .select({ id: slackTeamChannels.id })
-    .from(slackTeamChannels)
-    .where(eq(slackTeamChannels.teamId, input.teamId))
-    .limit(1);
-  if (existing.length > 0) {
-    await db
-      .update(slackTeamChannels)
-      .set({
+  await db
+    .insert(slackTeamChannels)
+    .values(input)
+    .onConflictDoUpdate({
+      target: slackTeamChannels.teamId,
+      set: {
         workspaceId: input.workspaceId,
         channelId: input.channelId,
         channelName: input.channelName,
         configuredByUserId: input.configuredByUserId,
         configuredAt: new Date(),
-      })
-      .where(eq(slackTeamChannels.teamId, input.teamId));
-    return;
-  }
-  await db.insert(slackTeamChannels).values(input);
+      },
+    });
 }
 
 export async function clearTeamChannel(db: Db, teamId: string): Promise<void> {

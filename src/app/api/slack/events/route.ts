@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { eq } from 'drizzle-orm';
 import { db } from '@/server/db/client';
+import { slackInstalls } from '@/server/db/schema';
 import { markUninstalled } from '@/server/slack/install';
 import { verifySlackSignature } from '@/server/slack/verify';
 
@@ -30,6 +32,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ challenge: env.challenge });
   }
   if (env.event?.type === 'app_uninstalled' && env.team_id) {
+    // Verify the workspace_id maps to a known install before mutating.
+    // The signing secret is shared across workspaces, so a valid signature
+    // alone doesn't authorize touching any arbitrary workspace row.
+    const [existing] = await db
+      .select({ workspaceId: slackInstalls.workspaceId })
+      .from(slackInstalls)
+      .where(eq(slackInstalls.workspaceId, env.team_id))
+      .limit(1);
+    if (!existing) {
+      return NextResponse.json({ ok: true, ignored: 'unknown_workspace' });
+    }
     await markUninstalled(db, env.team_id);
     return NextResponse.json({ ok: true });
   }

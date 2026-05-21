@@ -14,15 +14,19 @@ export interface UpsertInstallInput {
 
 export async function upsertInstall(db: Db, input: UpsertInstallInput): Promise<void> {
   const enc = encryptBotToken(input.accessToken, input.tokenEncKey);
-  const existing = await db
-    .select({ id: slackInstalls.id })
-    .from(slackInstalls)
-    .where(eq(slackInstalls.workspaceId, input.workspaceId))
-    .limit(1);
-  if (existing.length > 0) {
-    await db
-      .update(slackInstalls)
-      .set({
+  await db
+    .insert(slackInstalls)
+    .values({
+      workspaceId: input.workspaceId,
+      workspaceName: input.workspaceName,
+      botTokenCiphertext: enc.ciphertext,
+      botTokenIv: enc.iv,
+      botUserId: input.botUserId,
+      installerUserId: input.installerUserId,
+    })
+    .onConflictDoUpdate({
+      target: slackInstalls.workspaceId,
+      set: {
         workspaceName: input.workspaceName,
         botTokenCiphertext: enc.ciphertext,
         botTokenIv: enc.iv,
@@ -30,18 +34,8 @@ export async function upsertInstall(db: Db, input: UpsertInstallInput): Promise<
         installerUserId: input.installerUserId,
         installedAt: new Date(),
         revokedAt: null,
-      })
-      .where(eq(slackInstalls.workspaceId, input.workspaceId));
-    return;
-  }
-  await db.insert(slackInstalls).values({
-    workspaceId: input.workspaceId,
-    workspaceName: input.workspaceName,
-    botTokenCiphertext: enc.ciphertext,
-    botTokenIv: enc.iv,
-    botUserId: input.botUserId,
-    installerUserId: input.installerUserId,
-  });
+      },
+    });
 }
 
 export async function markUninstalled(db: Db, workspaceId: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/server/auth';
 import { db } from '@/server/db/client';
@@ -22,11 +23,7 @@ export async function GET(request: Request) {
   if (!code || !state) {
     return NextResponse.json({ error: 'missing code or state' }, { status: 400 });
   }
-  const cookieNonce = request.headers
-    .get('cookie')
-    ?.split(';')
-    .find((c) => c.trim().startsWith('slack_link_nonce='))
-    ?.split('=')[1];
+  const cookieNonce = (await cookies()).get('slack_link_nonce')?.value;
   const stateKey = process.env.SLACK_TOKEN_ENC_KEY;
   const clientId = process.env.SLACK_CLIENT_ID;
   const clientSecret = process.env.SLACK_CLIENT_SECRET;
