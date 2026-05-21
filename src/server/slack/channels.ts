@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { Db } from '@/server/db/client';
 import { slackInstalls, slackTeamChannels } from '@/server/db/schema';
 import type { SlackApiClient } from './api';
@@ -13,7 +13,12 @@ export async function listWorkspaceChannels(
   const [install] = await db
     .select({ ct: slackInstalls.botTokenCiphertext, iv: slackInstalls.botTokenIv })
     .from(slackInstalls)
-    .where(eq(slackInstalls.workspaceId, workspaceId))
+    .where(
+      and(
+        eq(slackInstalls.workspaceId, workspaceId),
+        isNull(slackInstalls.revokedAt),
+      ),
+    )
     .limit(1);
   if (!install) return [];
   const token = decryptBotToken({ ciphertext: install.ct, iv: install.iv }, tokenEncKey);

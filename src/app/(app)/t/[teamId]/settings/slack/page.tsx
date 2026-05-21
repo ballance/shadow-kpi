@@ -34,23 +34,55 @@ export default async function Page({
     .limit(1);
   if (!team) notFound();
 
-  const installs = await db
-    .select({
-      workspaceId: slackInstalls.workspaceId,
-      workspaceName: slackInstalls.workspaceName,
-    })
-    .from(slackInstalls)
-    .where(isNull(slackInstalls.revokedAt));
-
+  // Two paths to surface an install on this page, both tenant-scoped:
+  //   1. There's an existing channel mapping for this team → use its workspace.
+  //   2. The user just completed OAuth (?installed=<workspace_id>) AND they're
+  //      the installer of that workspace → let them pick a channel.
+  // We never expose installs from other tenants. installer_user_id is the
+  // only authorization signal we have until role-based admin lands.
   const [existingMapping] = await db
     .select()
     .from(slackTeamChannels)
     .where(eq(slackTeamChannels.teamId, teamId))
     .limit(1);
 
+  const workspaces: Array<{ workspaceId: string; workspaceName: string }> = [];
+  if (existingMapping) {
+    const [row] = await db
+      .select({
+        workspaceId: slackInstalls.workspaceId,
+        workspaceName: slackInstalls.workspaceName,
+      })
+      .from(slackInstalls)
+      .where(
+        and(
+          eq(slackInstalls.workspaceId, existingMapping.workspaceId),
+          isNull(slackInstalls.revokedAt),
+        ),
+      )
+      .limit(1);
+    if (row) workspaces.push(row);
+  } else if (installed) {
+    const [row] = await db
+      .select({
+        workspaceId: slackInstalls.workspaceId,
+        workspaceName: slackInstalls.workspaceName,
+      })
+      .from(slackInstalls)
+      .where(
+        and(
+          eq(slackInstalls.workspaceId, installed),
+          eq(slackInstalls.installerUserId, session.user.id),
+          isNull(slackInstalls.revokedAt),
+        ),
+      )
+      .limit(1);
+    if (row) workspaces.push(row);
+  }
+
   const tokenEncKey = process.env.SLACK_TOKEN_ENC_KEY;
   let channels: Array<{ id: string; name: string }> = [];
-  const pickerWorkspace = existingMapping?.workspaceId ?? installs[0]?.workspaceId;
+  const pickerWorkspace = existingMapping?.workspaceId ?? workspaces[0]?.workspaceId;
   if (pickerWorkspace && tokenEncKey) {
     channels = await listWorkspaceChannels(db, pickerWorkspace, slackHttpClient, tokenEncKey);
   }
@@ -62,7 +94,7 @@ export default async function Page({
         Post {team.name} market events into a Slack channel.
       </p>
 
-      {installs.length === 0 && (
+      {workspaces.length === 0 && (
         <a
           href={`/api/slack/install?team_id=${teamId}`}
           className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-primary-foreground"
@@ -71,13 +103,13 @@ export default async function Page({
         </a>
       )}
 
-      {installs.length > 0 && (
+      {workspaces.length > 0 && (
         <SlackChannelPicker
           teamId={teamId}
-          workspaces={installs}
+          workspaces={workspaces}
           channels={channels}
           existingMapping={existingMapping ?? null}
-          justInstalled={installed === '1'}
+          justInstalled={Boolean(installed)}
         />
       )}
     </main>

@@ -59,6 +59,9 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.redirect(
-    new URL(`/t/${verified.teamId}/settings/slack?installed=1`, request.url),
+    new URL(
+      `/t/${verified.teamId}/settings/slack?installed=${encodeURIComponent(exchange.teamId)}`,
+      request.url,
+    ),
   );
 }
