@@ -18,6 +18,7 @@ export default defineConfig({
       'AUTH_URL=http://localhost:3001 ' +
       'AUTH_SECRET=e2e-run-not-a-real-secret-0000000000000000 ' +
       'E2E_MODE=1 ' +
+      'SLACK_APP_PUBLIC_URL=http://localhost:3001 ' +
       'npx next dev -p 3001',
     url: 'http://localhost:3001',
     reuseExistingServer: false,
