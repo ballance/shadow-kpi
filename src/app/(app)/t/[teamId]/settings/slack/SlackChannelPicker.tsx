@@ -29,19 +29,12 @@ export function SlackChannelPicker(props: SlackChannelPickerProps) {
     }
     setBusy(true);
     setError(null);
-    const channel = props.channels.find((c) => c.id === selectedChannelId);
-    if (!channel) {
-      setBusy(false);
-      setError('Unknown channel');
-      return;
-    }
     const res = await fetch(`/api/teams/${props.teamId}/slack-channel`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         workspaceId: selectedWorkspace,
-        channelId: channel.id,
-        channelName: channel.name,
+        channelId: selectedChannelId,
       }),
     });
     setBusy(false);
