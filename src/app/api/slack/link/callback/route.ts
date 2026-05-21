@@ -58,13 +58,26 @@ export async function GET(request: Request) {
   const exchange = await slackHttpClient.openidConnectToken({
     clientId, clientSecret, code, redirectUri,
   });
-  if (!exchange.ok) {
+  if (!exchange.ok || !exchange.accessToken) {
     return NextResponse.json(
       { error: `slack token exchange failed: ${exchange.error}` },
       { status: 502 },
     );
   }
-  if (exchange.slackTeamId !== mapping.workspaceId) {
+
+  // Claims come from the userinfo endpoint over TLS, not from a self-decoded
+  // id_token. Slack signs the response server-side and we trust the TLS
+  // connection the same way oauth.v2.access does. Avoids the JWKS dance.
+  const claims = await slackHttpClient.openidConnectUserInfo({
+    token: exchange.accessToken,
+  });
+  if (!claims.ok) {
+    return NextResponse.json(
+      { error: `slack userinfo failed: ${claims.error}` },
+      { status: 502 },
+    );
+  }
+  if (claims.slackTeamId !== mapping.workspaceId) {
     return NextResponse.redirect(
       new URL('/profile/linked-accounts?error=workspace_mismatch', request.url),
     );
@@ -74,7 +87,7 @@ export async function GET(request: Request) {
     .from(users)
     .where(eq(users.id, session.user.id))
     .limit(1);
-  if (!u || !exchange.email || u.email.toLowerCase() !== exchange.email.toLowerCase()) {
+  if (!u || !claims.email || u.email.toLowerCase() !== claims.email.toLowerCase()) {
     return NextResponse.redirect(
       new URL('/profile/linked-accounts?error=email_mismatch', request.url),
     );
@@ -83,14 +96,14 @@ export async function GET(request: Request) {
   await upsertUserLink(db, {
     userId: session.user.id,
     workspaceId: mapping.workspaceId,
-    slackUserId: exchange.slackUserId,
+    slackUserId: claims.slackUserId,
   });
 
   await enqueueOutboxMessages(db, [
     {
       workspaceId: mapping.workspaceId,
       targetKind: 'dm',
-      targetId: exchange.slackUserId,
+      targetId: claims.slackUserId,
       payload: plainTextMessage(
         "You're linked to shadow-kpi. You'll get DMs when your bets resolve and when your markets lock.",
       ),

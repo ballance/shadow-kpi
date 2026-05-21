@@ -39,6 +39,16 @@ export interface OpenidConnectTokenInput {
 export interface OpenidConnectTokenResult {
   ok: boolean;
   error?: string;
+  accessToken: string;
+}
+
+export interface OpenidConnectUserInfoInput {
+  token: string;
+}
+
+export interface OpenidConnectUserInfoResult {
+  ok: boolean;
+  error?: string;
   sub: string;
   email: string;
   emailVerified: boolean;
@@ -75,6 +85,9 @@ export interface SlackApiClient {
   openidConnectToken(
     input: OpenidConnectTokenInput,
   ): Promise<OpenidConnectTokenResult>;
+  openidConnectUserInfo(
+    input: OpenidConnectUserInfoInput,
+  ): Promise<OpenidConnectUserInfoResult>;
   conversationsOpen(input: ConversationsOpenInput): Promise<ConversationsOpenResult>;
   conversationsList(input: ConversationsListInput): Promise<ConversationsListResult>;
 }
@@ -174,27 +187,35 @@ export const slackHttpClient: SlackApiClient = {
     const { body } = await callSlack<{
       ok: boolean;
       error?: string;
-      id_token?: string;
+      access_token?: string;
     }>('openid.connect.token', params);
-    if (!body.ok || !body.id_token) {
-      return {
-        ok: false,
-        error: body.error ?? 'no_id_token',
-        sub: '',
-        email: '',
-        emailVerified: false,
-        slackTeamId: '',
-        slackUserId: '',
-      };
-    }
-    const payload = decodeJwtPayload(body.id_token);
     return {
-      ok: true,
-      sub: String(payload.sub ?? ''),
-      email: String(payload.email ?? ''),
-      emailVerified: Boolean(payload.email_verified),
-      slackTeamId: String(payload['https://slack.com/team_id'] ?? ''),
-      slackUserId: String(payload['https://slack.com/user_id'] ?? ''),
+      ok: body.ok && Boolean(body.access_token),
+      error: body.ok ? undefined : (body.error ?? 'no_access_token'),
+      accessToken: body.access_token ?? '',
+    };
+  },
+
+  async openidConnectUserInfo({ token }) {
+    // Slack signs the userinfo response server-side and serves it over TLS,
+    // so the access_token bearer auth is sufficient — no JWT signature check needed.
+    const { body } = await callSlack<{
+      ok: boolean;
+      error?: string;
+      sub?: string;
+      email?: string;
+      email_verified?: boolean;
+      'https://slack.com/team_id'?: string;
+      'https://slack.com/user_id'?: string;
+    }>('openid.connect.userInfo', new URLSearchParams(), `Bearer ${token}`);
+    return {
+      ok: body.ok,
+      error: body.error,
+      sub: String(body.sub ?? ''),
+      email: String(body.email ?? ''),
+      emailVerified: Boolean(body.email_verified),
+      slackTeamId: String(body['https://slack.com/team_id'] ?? ''),
+      slackUserId: String(body['https://slack.com/user_id'] ?? ''),
     };
   },
 
@@ -239,9 +260,3 @@ export const slackHttpClient: SlackApiClient = {
   },
 };
 
-function decodeJwtPayload(idToken: string): Record<string, unknown> {
-  const parts = idToken.split('.');
-  if (parts.length !== 3) throw new Error('malformed id_token');
-  const payload = Buffer.from(parts[1], 'base64url').toString('utf8');
-  return JSON.parse(payload) as Record<string, unknown>;
-}

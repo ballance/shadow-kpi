@@ -7,6 +7,8 @@ import type {
   OauthV2AccessResult,
   OpenidConnectTokenInput,
   OpenidConnectTokenResult,
+  OpenidConnectUserInfoInput,
+  OpenidConnectUserInfoResult,
   PostMessageInput,
   PostMessageResult,
   SlackApiClient,
@@ -32,6 +34,10 @@ export class InMemorySlackApi implements SlackApiClient {
     teamName: 'Test Workspace',
   };
   openidConnectTokenResult: OpenidConnectTokenResult = {
+    ok: true,
+    accessToken: 'xoxp-user-test',
+  };
+  openidConnectUserInfoResult: OpenidConnectUserInfoResult = {
     ok: true,
     sub: 'sub-1',
     email: 'user@example.com',
@@ -66,6 +72,12 @@ export class InMemorySlackApi implements SlackApiClient {
     _input: OpenidConnectTokenInput,
   ): Promise<OpenidConnectTokenResult> {
     return this.openidConnectTokenResult;
+  }
+
+  async openidConnectUserInfo(
+    _input: OpenidConnectUserInfoInput,
+  ): Promise<OpenidConnectUserInfoResult> {
+    return this.openidConnectUserInfoResult;
   }
 
   async conversationsOpen(
