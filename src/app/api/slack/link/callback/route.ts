@@ -5,7 +5,7 @@ import { db } from '@/server/db/client';
 import { users, slackTeamChannels } from '@/server/db/schema';
 import { upsertUserLink } from '@/server/slack/link';
 import { verifyStateToken, type LinkStatePayload } from '@/server/slack/state';
-import { slackHttpClient } from '@/server/slack/api';
+import { slackClient } from '@/server/slack/api';
 import { enqueueOutboxMessages } from '@/server/slack/outbox';
 import { plainTextMessage } from '@/server/slack/blocks';
 
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
   }
 
   const redirectUri = `${publicUrl}/api/slack/link/callback`;
-  const exchange = await slackHttpClient.openidConnectToken({
+  const exchange = await slackClient.openidConnectToken({
     clientId, clientSecret, code, redirectUri,
   });
   if (!exchange.ok) {

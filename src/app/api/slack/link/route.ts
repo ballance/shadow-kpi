@@ -56,6 +56,22 @@ export async function GET(request: Request) {
   };
   const stateToken = signStateToken(linkPayload, stateKey);
 
+  // In E2E mode bypass the real Slack OIDC and go straight to the callback.
+  if (process.env.E2E_MODE === '1') {
+    const cb = new URL(redirectUri);
+    cb.searchParams.set('code', 'e2e-mock-code');
+    cb.searchParams.set('state', stateToken);
+    const e2eRes = NextResponse.redirect(cb);
+    e2eRes.cookies.set('slack_link_nonce', nonce, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/api/slack',
+      maxAge: 600,
+    });
+    return e2eRes;
+  }
+
   const slackUrl = new URL('https://slack.com/openid/connect/authorize');
   slackUrl.searchParams.set('response_type', 'code');
   slackUrl.searchParams.set('client_id', clientId);

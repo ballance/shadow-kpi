@@ -245,3 +245,61 @@ function decodeJwtPayload(idToken: string): Record<string, unknown> {
   const payload = Buffer.from(parts[1], 'base64url').toString('utf8');
   return JSON.parse(payload) as Record<string, unknown>;
 }
+
+/**
+ * In E2E_MODE the server cannot reach slack.com, so we swap in a stub that
+ * reads responses from env vars set by the test runner.
+ *
+ * Env vars consumed (all optional, with sane defaults for unit tests):
+ *   E2E_SLACK_WORKSPACE_ID   – workspace id returned by oauthV2Access
+ *   E2E_SLACK_WORKSPACE_NAME – workspace name returned by oauthV2Access
+ *   E2E_SLACK_BOT_USER_ID    – bot user id returned by oauthV2Access
+ *   E2E_SLACK_USER_ID        – Slack user id returned by openidConnectToken
+ *   E2E_SLACK_USER_EMAIL     – email returned by openidConnectToken
+ */
+function buildE2EClient(): SlackApiClient {
+  const workspaceId = process.env.E2E_SLACK_WORKSPACE_ID ?? 'T-e2e';
+  const workspaceName = process.env.E2E_SLACK_WORKSPACE_NAME ?? 'E2E Workspace';
+  const botUserId = process.env.E2E_SLACK_BOT_USER_ID ?? 'Ubot-e2e';
+  const slackUserId = process.env.E2E_SLACK_USER_ID ?? 'U-e2e';
+  const email = process.env.E2E_SLACK_USER_EMAIL ?? 'e2e@example.com';
+
+  return {
+    async postMessage(_input) {
+      return { ok: true, ts: `${Date.now()}.000`, channel: _input.channel };
+    },
+    async oauthV2Access(_input) {
+      return {
+        ok: true,
+        accessToken: 'xoxb-e2e-mock',
+        botUserId,
+        teamId: workspaceId,
+        teamName: workspaceName,
+      };
+    },
+    async openidConnectToken(_input) {
+      return {
+        ok: true,
+        sub: `sub-${slackUserId}`,
+        email,
+        emailVerified: true,
+        slackTeamId: workspaceId,
+        slackUserId,
+      };
+    },
+    async conversationsOpen(_input) {
+      return { ok: true, channelId: 'D-e2e' };
+    },
+    async conversationsList(_input) {
+      return {
+        ok: true,
+        channels: [{ id: 'C-general', name: 'general', isPrivate: false }],
+      };
+    },
+  };
+}
+
+// Re-export the active client. In E2E_MODE we use the stub so tests never
+// touch the real Slack API.
+export const slackClient: SlackApiClient =
+  process.env.E2E_MODE === '1' ? buildE2EClient() : slackHttpClient;

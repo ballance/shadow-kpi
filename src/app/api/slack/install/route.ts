@@ -44,6 +44,23 @@ export async function GET(request: Request) {
   const redirectUri = `${publicUrl}/api/slack/oauth/callback`;
   const nonce = newNonce();
   const stateToken = signStateToken({ kind: 'install', teamId, nonce }, stateKey);
+
+  // In E2E mode bypass the real Slack OAuth and go straight to the callback.
+  if (process.env.E2E_MODE === '1') {
+    const cb = new URL(redirectUri);
+    cb.searchParams.set('code', 'e2e-mock-code');
+    cb.searchParams.set('state', stateToken);
+    const e2eRes = NextResponse.redirect(cb);
+    e2eRes.cookies.set('slack_oauth_nonce', nonce, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/api/slack',
+      maxAge: 600,
+    });
+    return e2eRes;
+  }
+
   const slackUrl = new URL('https://slack.com/oauth/v2/authorize');
   slackUrl.searchParams.set('client_id', clientId);
   slackUrl.searchParams.set('scope', SCOPES);

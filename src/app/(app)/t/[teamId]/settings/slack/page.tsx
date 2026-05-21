@@ -6,7 +6,7 @@ import {
   memberships, slackInstalls, slackTeamChannels, teams,
 } from '@/server/db/schema';
 import { listWorkspaceChannels } from '@/server/slack/channels';
-import { slackHttpClient } from '@/server/slack/api';
+import { slackClient } from '@/server/slack/api';
 import { SlackChannelPicker } from './SlackChannelPicker';
 
 export const dynamic = 'force-dynamic';
@@ -52,7 +52,7 @@ export default async function Page({
   let channels: Array<{ id: string; name: string }> = [];
   const pickerWorkspace = existingMapping?.workspaceId ?? installs[0]?.workspaceId;
   if (pickerWorkspace && tokenEncKey) {
-    channels = await listWorkspaceChannels(db, pickerWorkspace, slackHttpClient, tokenEncKey);
+    channels = await listWorkspaceChannels(db, pickerWorkspace, slackClient, tokenEncKey);
   }
 
   return (
