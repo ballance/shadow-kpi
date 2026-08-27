@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🍩 shadow-kpi
+# 🪙 OptionsPlayers
 
-**Bet doughnuts on what happens at work.**
+**Bet coins on what happens at work.**
 
-[![CI](https://github.com/ballance/shadow-kpi/actions/workflows/ci.yml/badge.svg)](https://github.com/ballance/shadow-kpi/actions/workflows/ci.yml)
+[![CI](https://github.com/ballance/OptionsPlayers/actions/workflows/ci.yml/badge.svg)](https://github.com/ballance/OptionsPlayers/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/typescript-strict-3178c6.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/next.js-16-000000.svg)](https://nextjs.org/)
@@ -13,20 +13,20 @@
 </div>
 
 <p align="center">
-  <img src="docs/img/hero.png" alt="shadow-kpi market detail" width="900" />
+  <img src="docs/img/hero.png" alt="OptionsPlayers market detail" width="900" />
 </p>
 
 ---
 
-## 🍩 What is this?
+## 🪙 What is this?
 
-A workplace prediction market where teammates bet **doughnuts** (a fake virtual currency — no real money, no real gambling, no SEC interest) on the binary "will X actually happen?" questions that come up at every job.
+A workplace prediction market where teammates bet **coins** (a fake virtual currency — no real money, no real gambling, no SEC interest) on the binary "will X actually happen?" questions that come up at every job.
 
 > *"Will the Q1 deck ship by Friday?"*
 > *"Will the all-hands run over again?"*
 > *"Will Tom remember his standup tomorrow?"*
 
-Each market is a parimutuel pool. You get **12 fresh doughnuts every Monday**, unspent ones evaporate (use 'em or lose 'em), but stakes and winnings carry forward. Markets lock at a set time, the creator calls the outcome, and the pool gets paid out to the winning side — proportional to your stake, with dust assigned deterministically so the books always balance.
+Each market is a parimutuel pool. You get **12 fresh coins every Monday**, unspent ones evaporate (use 'em or lose 'em), but stakes and winnings carry forward. Markets lock at a set time, the creator calls the outcome, and the pool gets paid out to the winning side — proportional to your stake, with dust assigned deterministically so the books always balance.
 
 Each team is its own island: invite codes, scoped balances, scoped leaderboard. Email-magic-link auth, no passwords. Two color modes that follow your OS. Looks like Polymarket; runs like a small Next.js app you can self-host in a weekend.
 
@@ -35,8 +35,8 @@ Each team is its own island: invite codes, scoped balances, scoped leaderboard. 
 ## 🚀 Quick start
 
 ```bash
-git clone git@github.com:ballance/shadow-kpi.git
-cd shadow-kpi
+git clone git@github.com:ballance/OptionsPlayers.git
+cd OptionsPlayers
 docker compose -f docker-compose.dev.yml up -d postgres
 nvm use                       # Node 22 (pinned via .nvmrc)
 cp .env.example .env.local    # edit the placeholders before signing in
@@ -63,9 +63,9 @@ Binary YES/NO markets with proportional payout. Pool totals visible while open; 
 </td>
 <td width="50%" valign="top">
 
-### Weekly doughnut allowance
+### Weekly coin allowance
 
-Twelve doughnuts every Monday at 9am local. Unspent allowance evaporates; stakes and prior winnings persist. A Vercel cron + idempotent ledger entry keeps the reset honest across deploys.
+Twelve coins every Monday at 9am local. Unspent allowance evaporates; stakes and prior winnings persist. A Vercel cron + idempotent ledger entry keeps the reset honest across deploys.
 
 </td>
 </tr>
@@ -129,7 +129,7 @@ Dark navy + teal/coral hero bar, Geist Mono wordmark, mobile-clean down to 375px
 
 ### Pool math (parimutuel + dust)
 
-When a market resolves, the entire pool is split among winners proportional to stake. Doughnuts are integers, so proportional payouts never divide cleanly — `pool * stake / winningSide` leaves remainder. The remainder ("dust") is assigned deterministically to the earliest bettor on the winning side, so the books reconcile to the doughnut. See `src/server/payouts.ts`.
+When a market resolves, the entire pool is split among winners proportional to stake. Coins are integers, so proportional payouts never divide cleanly — `pool * stake / winningSide` leaves remainder. The remainder ("dust") is assigned deterministically to the earliest bettor on the winning side, so the books reconcile to the coin. See `src/server/payouts.ts`.
 
 ### Concurrency
 
@@ -162,7 +162,7 @@ Every commit on `master` keeps all three green. The plan-driven workflow (see [D
 ## 📁 Project layout
 
 ```
-shadow-kpi/
+OptionsPlayers/
 ├── src/
 │   ├── app/                          # Next.js App Router pages + route handlers
 │   │   ├── (app)/                    # authenticated routes (teams, markets, profile, activity, leaderboard)
@@ -201,12 +201,12 @@ This project was built spec-first, plan-driven, subagent-implemented. Every feat
 
 | Phase | Spec | Plan |
 |---|---|---|
-| Product design | [shadow-kpi-design](docs/superpowers/specs/2026-05-12-shadow-kpi-design.md) | — |
-| Foundation + identity | (in design) | [plan-1](docs/superpowers/plans/2026-05-12-shadow-kpi-plan-1-foundation-identity.md) |
-| First market end-to-end | (in design) | [plan-2](docs/superpowers/plans/2026-05-12-shadow-kpi-plan-2-first-market.md) |
-| Economy completeness | (in design) | [plan-3](docs/superpowers/plans/2026-05-12-shadow-kpi-plan-3-economy-completeness.md) |
-| Social + polish | (in design) | [plan-4](docs/superpowers/plans/2026-05-12-shadow-kpi-plan-4-social-and-polish.md) |
-| Styling redesign | [styling-design](docs/superpowers/specs/2026-05-14-shadow-kpi-styling-design.md) | [styling-plan](docs/superpowers/plans/2026-05-14-shadow-kpi-styling-plan.md) |
+| Product design | [OptionsPlayers-design](docs/superpowers/specs/2026-05-12-OptionsPlayers-design.md) | — |
+| Foundation + identity | (in design) | [plan-1](docs/superpowers/plans/2026-05-12-OptionsPlayers-plan-1-foundation-identity.md) |
+| First market end-to-end | (in design) | [plan-2](docs/superpowers/plans/2026-05-12-OptionsPlayers-plan-2-first-market.md) |
+| Economy completeness | (in design) | [plan-3](docs/superpowers/plans/2026-05-12-OptionsPlayers-plan-3-economy-completeness.md) |
+| Social + polish | (in design) | [plan-4](docs/superpowers/plans/2026-05-12-OptionsPlayers-plan-4-social-and-polish.md) |
+| Styling redesign | [styling-design](docs/superpowers/specs/2026-05-14-OptionsPlayers-styling-design.md) | [styling-plan](docs/superpowers/plans/2026-05-14-OptionsPlayers-styling-plan.md) |
 | README polish | [readme-design](docs/superpowers/specs/2026-05-15-readme-design.md) | — |
 
 If you want to know **why** a thing is shaped the way it is, the spec answers it. If you want to know **how** it was built, the plan does.
@@ -234,6 +234,6 @@ MIT — see [LICENSE](LICENSE). Fork it, run it at your company, change the curr
 
 ## 🙏 Built with
 
-[Next.js](https://nextjs.org/) 16 · [TypeScript](https://www.typescriptlang.org/) (strict) · [Drizzle ORM](https://orm.drizzle.team/) · [Auth.js](https://authjs.dev/) v5 · [Resend](https://resend.com/) · [shadcn/ui](https://ui.shadcn.com/) · [Geist](https://vercel.com/font) · [Tailwind v4](https://tailwindcss.com/) · [Playwright](https://playwright.dev/) · [Vitest](https://vitest.dev/) · [testcontainers](https://testcontainers.com/)
+[Next.js](https://nextjs.org/) 16 · [TypeScript](https://www.typescriptlang.org/) (strict) · [Drizzle ORM](https://orm.drizzle.team/) · [Auth.js](https://authjs.dev/) v5 · [Resend](https://resend.com/) · [shadcn/ui](https://ui.shadcn.com/) · Playfair Display · Noto Sans · JetBrains Mono · [Tailwind v4](https://tailwindcss.com/) · [Playwright](https://playwright.dev/) · [Vitest](https://vitest.dev/) · [testcontainers](https://testcontainers.com/)
 
-<p align="center"><sub>If you ship shadow-kpi at your job, send a screenshot. I want to know.</sub></p>
+<p align="center"><sub>If you ship OptionsPlayers at your job, send a screenshot. I want to know.</sub></p>

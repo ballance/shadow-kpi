@@ -47,13 +47,13 @@ export default async function MePage({ params }: MePageProps) {
         <Card>
           <CardContent className="py-4">
             <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">Balance</div>
-            <div className="text-2xl font-bold text-fg font-mono mt-0.5">🍩 {balance}</div>
+            <div className="text-2xl font-bold text-fg font-mono mt-0.5">🪙 {balance}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
             <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">This week</div>
-            <div className="text-2xl font-bold text-fg font-mono mt-0.5">🍩 {allowance}</div>
+            <div className="text-2xl font-bold text-fg font-mono mt-0.5">🪙 {allowance}</div>
           </CardContent>
         </Card>
         <Card>
@@ -100,7 +100,7 @@ export default async function MePage({ params }: MePageProps) {
                       >
                         {bet.side}
                       </span>
-                      <span className="font-mono text-fg">🍩 {bet.amount}</span>
+                      <span className="font-mono text-fg">🪙 {bet.amount}</span>
                       {won && <span className="text-accent font-semibold">✓ won</span>}
                       {lost && <span className="text-danger font-semibold">✗ lost</span>}
                       {voided && <span className="text-fg-dim">voided</span>}

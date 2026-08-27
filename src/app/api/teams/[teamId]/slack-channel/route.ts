@@ -25,7 +25,7 @@ const SetBody = z.object({
 });
 
 // TODO(slack-admin-role): All team members can currently set / clear the
-// Slack channel. Once shadow-kpi grows a membership role column, gate
+// Slack channel. Once OptionsPlayers grows a membership role column, gate
 // these endpoints on the admin role.
 async function checkMember(userId: string, teamId: string): Promise<boolean> {
   const rows = await db
@@ -90,7 +90,7 @@ export async function POST(
       targetKind: 'channel',
       targetId: channel.id,
       payload: plainTextMessage(
-        `shadow-kpi is now wired to this channel for *${channel.name}*. You'll see new markets, locks, and resolutions here.`,
+        `OptionsPlayers is now wired to this channel for *${channel.name}*. You'll see new markets, locks, and resolutions here.`,
       ),
       dedupKey: null,
     },

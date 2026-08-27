@@ -58,13 +58,13 @@ export function marketLockedChannel(p: {
   noPct: number;
 }): SlackMessage {
   const url = `${p.baseUrl}/markets/${p.marketId}`;
-  const text = `🔒 Locked: ${p.title} — ${p.teamName} · ${p.betCount} bets · pool ${p.poolTotal} 🍩`;
+  const text = `🔒 Locked: ${p.title} — ${p.teamName} · ${p.betCount} bets · pool ${p.poolTotal} 🪙`;
   return {
     text,
     blocks: [
       section(`*🔒 Locked: ${p.title}*`),
       contextLine(
-        `${p.teamName} · ${p.betCount} bets · pool ${p.poolTotal} 🍩 (YES ${p.yesPct}% / NO ${p.noPct}%)`,
+        `${p.teamName} · ${p.betCount} bets · pool ${p.poolTotal} 🪙 (YES ${p.yesPct}% / NO ${p.noPct}%)`,
       ),
       linkButton(url),
     ],
@@ -82,13 +82,13 @@ export function marketResolvedChannel(p: {
   callerDisplay: string;
 }): SlackMessage {
   const url = `${p.baseUrl}/markets/${p.marketId}`;
-  const text = `✅ Resolved ${p.outcome.toUpperCase()}: ${p.title} — ${p.winnerCount} winners split ${p.poolTotal} 🍩`;
+  const text = `✅ Resolved ${p.outcome.toUpperCase()}: ${p.title} — ${p.winnerCount} winners split ${p.poolTotal} 🪙`;
   return {
     text,
     blocks: [
       section(`*✅ Resolved ${p.outcome.toUpperCase()}: ${p.title}*`),
       contextLine(
-        `${p.teamName} · ${p.winnerCount} winners split ${p.poolTotal} 🍩 · called by ${p.callerDisplay}`,
+        `${p.teamName} · ${p.winnerCount} winners split ${p.poolTotal} 🪙 · called by ${p.callerDisplay}`,
       ),
       linkButton(url, 'View payout breakdown'),
     ],
@@ -104,13 +104,13 @@ export function marketLockedDm(p: {
   creatorDisplay: string;
 }): SlackMessage {
   const url = `${p.baseUrl}/markets/${p.marketId}`;
-  const text = `🔒 ${p.title} locked. You staked ${p.stake} 🍩 on ${p.side.toUpperCase()}.`;
+  const text = `🔒 ${p.title} locked. You staked ${p.stake} 🪙 on ${p.side.toUpperCase()}.`;
   return {
     text,
     blocks: [
       section(`*🔒 A market you bet on just locked:*\n${p.title}`),
       contextLine(
-        `You staked ${p.stake} 🍩 on ${p.side.toUpperCase()}. Outcome resolves when ${p.creatorDisplay} calls it.`,
+        `You staked ${p.stake} 🪙 on ${p.side.toUpperCase()}. Outcome resolves when ${p.creatorDisplay} calls it.`,
       ),
       linkButton(url),
     ],
@@ -128,13 +128,13 @@ export function marketResolvedDmWinner(p: {
 }): SlackMessage {
   const url = `${p.baseUrl}/markets/${p.marketId}`;
   const delta = p.payout - p.stake;
-  const text = `🎉 You won ${delta} 🍩 — ${p.title} resolved ${p.outcome.toUpperCase()}. New balance: ${p.newBalance} 🍩`;
+  const text = `🎉 You won ${delta} 🪙 — ${p.title} resolved ${p.outcome.toUpperCase()}. New balance: ${p.newBalance} 🪙`;
   return {
     text,
     blocks: [
-      section(`*🎉 You won ${delta} 🍩*`),
+      section(`*🎉 You won ${delta} 🪙*`),
       contextLine(
-        `${p.title} — resolved ${p.outcome.toUpperCase()}\nYou staked ${p.stake} → received ${p.payout} (+${delta}) · new balance: ${p.newBalance} 🍩`,
+        `${p.title} — resolved ${p.outcome.toUpperCase()}\nYou staked ${p.stake} → received ${p.payout} (+${delta}) · new balance: ${p.newBalance} 🪙`,
       ),
       linkButton(url, 'View payout'),
     ],
@@ -150,13 +150,13 @@ export function marketResolvedDmLoser(p: {
   newBalance: number;
 }): SlackMessage {
   const url = `${p.baseUrl}/markets/${p.marketId}`;
-  const text = `💀 You lost ${p.stake} 🍩 — ${p.title} resolved ${p.outcome.toUpperCase()}. New balance: ${p.newBalance} 🍩`;
+  const text = `💀 You lost ${p.stake} 🪙 — ${p.title} resolved ${p.outcome.toUpperCase()}. New balance: ${p.newBalance} 🪙`;
   return {
     text,
     blocks: [
-      section(`*💀 You lost ${p.stake} 🍩*`),
+      section(`*💀 You lost ${p.stake} 🪙*`),
       contextLine(
-        `${p.title} — resolved ${p.outcome.toUpperCase()}\nYour stake stays in the pool · new balance: ${p.newBalance} 🍩`,
+        `${p.title} — resolved ${p.outcome.toUpperCase()}\nYour stake stays in the pool · new balance: ${p.newBalance} 🪙`,
       ),
       linkButton(url),
     ],
@@ -170,12 +170,12 @@ export function marketVoidedDm(p: {
   stake: number;
 }): SlackMessage {
   const url = `${p.baseUrl}/markets/${p.marketId}`;
-  const text = `↩️ Refund: ${p.title} was voided. Your ${p.stake} 🍩 stake has been returned.`;
+  const text = `↩️ Refund: ${p.title} was voided. Your ${p.stake} 🪙 stake has been returned.`;
   return {
     text,
     blocks: [
       section(`*↩️ Refund: ${p.title}*`),
-      contextLine(`The market was voided. Your ${p.stake} 🍩 stake has been returned.`),
+      contextLine(`The market was voided. Your ${p.stake} 🪙 stake has been returned.`),
       linkButton(url),
     ],
   };

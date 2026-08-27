@@ -58,7 +58,7 @@ export const verificationTokens = pgTable(
   (vt) => ({ pk: primaryKey({ columns: [vt.identifier, vt.token] }) }),
 );
 
-// shadow-kpi domain
+// OptionsPlayers domain
 export const teams = pgTable(
   'team',
   {

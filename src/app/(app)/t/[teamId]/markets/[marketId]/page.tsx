@@ -236,7 +236,7 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
                 </Button>
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="amount">Amount (🍩)</Label>
+                <Label htmlFor="amount">Amount (🪙)</Label>
                 <Input
                   id="amount"
                   name="amount"
@@ -247,7 +247,7 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
                   defaultValue={1}
                 />
                 <div className="text-xs text-fg-muted">
-                  Your balance: 🍩 {balance} (spendable this week: 🍩 {allowance})
+                  Your balance: 🪙 {balance} (spendable this week: 🪙 {allowance})
                 </div>
               </div>
             </form>
@@ -327,7 +327,7 @@ export default async function MarketDetailPage({ params }: MarketDetailPageProps
                 <li key={b.id} className="flex items-center justify-between text-sm">
                   <span>
                     {nameFromEmail(bettorEmails.get(b.userId) ?? '???')} —{' '}
-                    <strong>{b.side.toUpperCase()}</strong> · 🍩 {b.amount}
+                    <strong>{b.side.toUpperCase()}</strong> · 🪙 {b.amount}
                   </span>
                   <span className="text-xs text-fg-dim">{fmtTime(b.placedAt)}</span>
                 </li>

@@ -6,7 +6,7 @@ import {
   slackInstalls, slackTeamChannels, slackUserLinks, slackOutbox,
 } from '@/server/db/schema';
 
-const baseUrl = 'https://shadow-kpi.example.com';
+const baseUrl = 'https://opbets.bastionforge.com';
 
 async function seedTeamWithInstall(handle: TestDbHandle) {
   await handle.db.insert(users).values([

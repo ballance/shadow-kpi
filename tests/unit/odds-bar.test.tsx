@@ -23,6 +23,6 @@ describe('OddsBar', () => {
     const { getByText } = render(
       <OddsBar yesShare={0.5} noShare={0.5} yesPool={10} noPool={10} total={20} />,
     );
-    expect(getByText(/🍩 20/)).toBeDefined();
+    expect(getByText(/🪙 20/)).toBeDefined();
   });
 });

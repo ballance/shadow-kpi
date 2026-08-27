@@ -43,7 +43,7 @@ describe('teams service', () => {
       expect(mems[0]).toMatchObject({ userId: 'u1', teamId: team.id });
     });
 
-    it('grants the creator their initial 12 doughnuts', async () => {
+    it('grants the creator their initial 12 coins', async () => {
       await makeUser('u1', 'u1@example.com');
       const team = await createTeam(handle.db, { name: 'Team A', creatorId: 'u1' });
       const ledger = await handle.db.select().from(ledgerEntries);
@@ -79,7 +79,7 @@ describe('teams service', () => {
   });
 
   describe('joinByInviteCode', () => {
-    it('adds a membership and grants 12 doughnuts to the new member', async () => {
+    it('adds a membership and grants 12 coins to the new member', async () => {
       await makeUser('u1', 'u1@example.com');
       await makeUser('u2', 'u2@example.com');
       const team = await createTeam(handle.db, { name: 'T', creatorId: 'u1' });

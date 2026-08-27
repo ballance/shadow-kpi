@@ -9,7 +9,7 @@ import {
   marketVoidedDm,
 } from '@/server/slack/blocks';
 
-const baseUrl = 'https://shadow-kpi.example.com';
+const baseUrl = 'https://opbets.bastionforge.com';
 
 describe('block kit formatters', () => {
   it('marketCreatedChannel includes title, team, link button, and text fallback', () => {

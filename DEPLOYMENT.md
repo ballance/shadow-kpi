@@ -1,4 +1,4 @@
-# Deploying shadow-kpi
+# Deploying OptionsPlayers
 
 This guide walks you from "it runs on my laptop" to "we used it at standup today" in about an hour. We'll use:
 
@@ -28,7 +28,7 @@ Save them somewhere — your password manager, or just keep this terminal open f
 
 1. Sign in at <https://console.neon.tech> (GitHub OAuth is fastest)
 2. Click **Create a project**
-   - Name: `shadow-kpi`
+   - Name: `OptionsPlayers`
    - Postgres version: latest
    - Region: closest to your team
 3. After it provisions, copy the **pooled connection string** from the dashboard (looks like `postgresql://...neon.tech/...?sslmode=require`)
@@ -55,7 +55,7 @@ We're using **`mail.bastionforge.com`** as the send-from domain — a dedicated 
    - DKIM: `TXT resend._domainkey.mail "p=<long-key-string>"`
    - DMARC: `TXT _dmarc.mail "v=DMARC1; p=none;"`
 4. Wait for "Verified" in the Resend dashboard (usually <10 min after DNS propagates)
-5. The `from` address you'll use everywhere is: `shadow-kpi <noreply@mail.bastionforge.com>`
+5. The `from` address you'll use everywhere is: `OptionsPlayers <noreply@mail.bastionforge.com>`
 
 ---
 
@@ -63,7 +63,7 @@ We're using **`mail.bastionforge.com`** as the send-from domain — a dedicated 
 
 1. Sign in at <https://vercel.com> (GitHub OAuth, again)
 2. **Add New → Project**
-3. Select the `ballance/shadow-kpi` repo
+3. Select the `ballance/OptionsPlayers` repo
 4. **Configure Project** screen:
    - **Framework Preset:** Next.js (auto-detected)
    - **Root Directory:** `./` (default)
@@ -78,7 +78,7 @@ We're using **`mail.bastionforge.com`** as the send-from domain — a dedicated 
    | `AUTH_SECRET` | first hex string from Step 1 |
    | `AUTH_URL` | leave blank for now — we set this after first deploy |
    | `RESEND_API_KEY` | your `re_...` key from Resend dashboard |
-   | `AUTH_EMAIL_FROM` | `shadow-kpi <noreply@mail.bastionforge.com>` |
+   | `AUTH_EMAIL_FROM` | `OptionsPlayers <noreply@mail.bastionforge.com>` |
    | `CRON_SECRET` | second hex string from Step 1 |
 
 6. Click **Deploy**
@@ -89,7 +89,7 @@ The first build will fail with an Auth.js MissingSecret error if `AUTH_URL` isn'
 
 ## Step 5 — Set AUTH_URL and redeploy
 
-1. After the first deploy, Vercel gives you a URL like `https://shadow-kpi.vercel.app` (or `https://shadow-kpi-<hash>.vercel.app` for previews)
+1. After the first deploy, Vercel gives you a URL like `https://opbets.bastionforge.com` (or `https://opbets-<hash>.vercel.app` for previews)
 2. Go to **Project → Settings → Environment Variables**
 3. Set `AUTH_URL` to that URL (no trailing slash) — apply to Production + Preview + Development
 4. Redeploy via **Deployments → ... → Redeploy** on the latest deployment
@@ -98,15 +98,15 @@ This time the build is green and `/` loads.
 
 ---
 
-## Step 6 — Custom domain (`shadow-kpi.bastionforge.com`)
+## Step 6 — Custom domain (`OptionsPlayers.bastionforge.com`)
 
-1. **Project → Settings → Domains → Add** → enter `shadow-kpi.bastionforge.com`
+1. **Project → Settings → Domains → Add** → enter `OptionsPlayers.bastionforge.com`
 2. Vercel gives you a CNAME record:
    - Type: `CNAME`
-   - Host: `shadow-kpi`
+   - Host: `OptionsPlayers`
    - Value: `cname.vercel-dns.com`
 3. Add that at your registrar. Vercel auto-issues a Let's Encrypt cert once DNS propagates (~5 min)
-4. Once Vercel marks it "Valid Configuration", update `AUTH_URL` in env from the `*.vercel.app` URL to `https://shadow-kpi.bastionforge.com`
+4. Once Vercel marks it "Valid Configuration", update `AUTH_URL` in env from the `*.vercel.app` URL to `https://OptionsPlayers.bastionforge.com`
 5. Redeploy once more
 
 ---
@@ -116,8 +116,8 @@ This time the build is green and `/` loads.
 1. Open the live URL
 2. Sign in with your own email — magic link should land in your inbox within seconds
 3. Create a team. Note the invite URL — it should use your production domain, not `localhost:3333`
-4. Open <https://vercel.com/<your>/shadow-kpi/logs> in another tab while you sign in to confirm Resend is firing
-5. Check <https://vercel.com/<your>/shadow-kpi/crons> — both cron jobs (`lockup-sweep`, `weekly-reset`) should be listed and the next-run times should be sensible
+4. Open <https://vercel.com/<your>/OptionsPlayers/logs> in another tab while you sign in to confirm Resend is firing
+5. Check <https://vercel.com/<your>/OptionsPlayers/crons> — both cron jobs (`lockup-sweep`, `weekly-reset`) should be listed and the next-run times should be sensible
 
 ---
 

@@ -82,7 +82,7 @@ export async function placeBet(db: Db, input: PlaceBetInput): Promise<Bet> {
     if (balance < input.amount) {
       throw new DomainError(
         'INSUFFICIENT_BALANCE',
-        `You have ${balance} doughnuts, need ${input.amount}.`,
+        `You have ${balance} coins, need ${input.amount}.`,
       );
     }
 

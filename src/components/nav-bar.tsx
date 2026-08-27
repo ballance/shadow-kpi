@@ -1,5 +1,6 @@
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { NotificationBell, type NotificationBellProps } from '@/components/notification-bell';
 import { BalanceChip } from '@/components/balance-chip';
 
@@ -16,9 +17,27 @@ export function NavBar({ homeHref, notifications, balance, rightExtras }: NavBar
       <div className="mx-auto max-w-4xl h-full px-4 sm:px-6 flex items-center justify-between">
         <Link
           href={homeHref}
-          className="font-mono text-sm font-bold tracking-tight text-fg hover:text-accent transition-colors"
+          aria-label="OptionsPlayers"
+          className="flex items-center hover:opacity-80 transition-opacity"
         >
-          shadow-kpi
+          {/* dark linework on light theme, gold foil on dark theme */}
+          <Image
+            src="/op-wings-dark.png"
+            alt="OptionsPlayers"
+            width={160}
+            height={40}
+            priority
+            className="h-8 w-auto dark:hidden"
+          />
+          <Image
+            src="/op-wings.png"
+            alt=""
+            aria-hidden
+            width={160}
+            height={40}
+            priority
+            className="hidden h-8 w-auto dark:block"
+          />
         </Link>
         <div className="flex items-center gap-3">
           <NotificationBell {...notifications} />

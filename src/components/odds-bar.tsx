@@ -14,7 +14,7 @@ export function OddsBar({ yesShare, noShare, yesPool, noPool, total }: OddsBarPr
     <div className="bg-surface border border-border rounded-lg p-4">
       <div className="flex justify-between text-xs text-fg-muted mb-2">
         <span>Pool</span>
-        <span className="text-fg font-bold">🍩 {total}</span>
+        <span className="text-fg font-bold">🪙 {total}</span>
       </div>
       {total === 0 ? (
         <div className="h-9 rounded-md bg-border flex items-center justify-center text-fg-muted text-xs">
@@ -49,8 +49,8 @@ export function OddsBar({ yesShare, noShare, yesPool, noPool, total }: OddsBarPr
             )}
           </div>
           <div className="flex justify-between text-[10px] text-fg-dim mt-1.5">
-            <span>🍩 {yesPool} YES</span>
-            <span>🍩 {noPool} NO</span>
+            <span>🪙 {yesPool} YES</span>
+            <span>🪙 {noPool} NO</span>
           </div>
         </>
       )}

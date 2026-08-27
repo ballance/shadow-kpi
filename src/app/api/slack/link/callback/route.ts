@@ -102,7 +102,7 @@ export async function GET(request: Request) {
       targetKind: 'dm',
       targetId: claims.slackUserId,
       payload: plainTextMessage(
-        "You're linked to shadow-kpi. You'll get DMs when your bets resolve and when your markets lock.",
+        "You're linked to OptionsPlayers. You'll get DMs when your bets resolve and when your markets lock.",
       ),
       dedupKey: null,
     },

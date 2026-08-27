@@ -54,14 +54,14 @@ test('founder voids a market with bets — joiner gets refund and shows up on le
   await founder.waitForURL((url) => /\/markets\//.test(url.pathname) && !url.pathname.endsWith('/new'));
   const marketUrl = founder.url();
 
-  // Joiner places a 4-doughnut bet on Yes.
+  // Joiner places a 4-coin bet on Yes.
   await joiner.goto(marketUrl);
-  await joiner.getByLabel('Amount (🍩)').fill('4');
+  await joiner.getByLabel('Amount (🪙)').fill('4');
   await joiner.getByRole('button', { name: 'Bet Yes' }).click();
   await joiner.waitForLoadState('networkidle');
 
   await joiner.goto(teamUrl);
-  await expect(joiner.getByText('🍩 8').first()).toBeVisible();
+  await expect(joiner.getByText('🪙 8').first()).toBeVisible();
 
   // Founder voids the market.
   await founder.goto(marketUrl);
@@ -70,7 +70,7 @@ test('founder voids a market with bets — joiner gets refund and shows up on le
 
   // Joiner's balance is back to 12.
   await joiner.goto(teamUrl);
-  await expect(joiner.getByText('🍩 12').first()).toBeVisible();
+  await expect(joiner.getByText('🪙 12').first()).toBeVisible();
 
   // Leaderboard shows both members.
   await joiner.getByRole('link', { name: 'Leaderboard' }).click();

@@ -26,7 +26,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 gap-6 bg-[radial-gradient(ellipse_at_top,_var(--surface-elevated),_var(--bg))]">
       <Link href="/" className="font-mono text-2xl font-bold tracking-tight text-fg">
-        shadow-kpi
+        OptionsPlayers
       </Link>
       <Card className="w-full max-w-sm">
         <CardHeader>

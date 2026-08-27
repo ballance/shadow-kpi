@@ -97,9 +97,9 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
         <Card>
           <CardContent className="py-4">
             <div className="text-[10px] uppercase tracking-wide text-fg-dim font-semibold">Balance</div>
-            <div className="text-2xl font-bold text-fg font-mono mt-0.5">🍩 {balance}</div>
+            <div className="text-2xl font-bold text-fg font-mono mt-0.5">🪙 {balance}</div>
             <div className="text-xs text-fg-muted mt-1">
-              Spendable this week: <span className="text-accent font-semibold font-mono">🍩 {allowance}</span>
+              Spendable this week: <span className="text-accent font-semibold font-mono">🪙 {allowance}</span>
             </div>
           </CardContent>
         </Card>

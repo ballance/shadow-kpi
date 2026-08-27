@@ -38,7 +38,7 @@ export default async function TeamsPage() {
                   <CardTitle>{team.name}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between py-3">
-                  <span className="text-sm text-fg-muted">🍩 {balance}</span>
+                  <span className="text-sm text-fg-muted">🪙 {balance}</span>
                   <span className="text-xs text-fg-dim">Open →</span>
                 </CardContent>
               </Card>

@@ -68,7 +68,7 @@ export default async function Page({
       )}
       {error === 'email_mismatch' && (
         <div className="rounded border border-red-600 p-3 text-sm text-red-700">
-          The Slack email didn&apos;t match your shadow-kpi email. Make sure you&apos;re signed
+          The Slack email didn&apos;t match your OptionsPlayers email. Make sure you&apos;re signed
           into Slack with the same address.
         </div>
       )}

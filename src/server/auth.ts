@@ -12,7 +12,7 @@ declare module 'next-auth' {
   }
 }
 
-const FROM = process.env.AUTH_EMAIL_FROM ?? 'shadow-kpi <onboarding@resend.dev>';
+const FROM = process.env.AUTH_EMAIL_FROM ?? 'OptionsPlayers <onboarding@resend.dev>';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db, {
@@ -44,9 +44,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           body: JSON.stringify({
             from: provider.from,
             to: stripPlusAlias(identifier),
-            subject: 'Your shadow-kpi sign-in link',
+            subject: 'Your OptionsPlayers sign-in link',
             html: signInEmailHtml(url),
-            text: `Sign in to shadow-kpi: ${url}\n\nThis link expires in 24 hours.`,
+            text: `Sign in to OptionsPlayers: ${url}\n\nThis link expires in 24 hours.`,
           }),
         });
         if (!res.ok) {
@@ -80,7 +80,7 @@ function stripPlusAlias(email: string): string {
 function signInEmailHtml(url: string): string {
   return `
     <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto;">
-      <h2>Sign in to shadow-kpi</h2>
+      <h2>Sign in to OptionsPlayers</h2>
       <p>Click the link below to sign in. It expires in 24 hours.</p>
       <p><a href="${url}" style="display:inline-block;padding:10px 16px;background:#111;color:#fff;text-decoration:none;border-radius:6px;">Sign in</a></p>
       <p style="color:#666;font-size:14px;">If you didn't request this, you can ignore this email.</p>

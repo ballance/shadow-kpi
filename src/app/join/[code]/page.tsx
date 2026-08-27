@@ -62,7 +62,7 @@ export default async function JoinPage({ params }: JoinPageProps) {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <p className="text-sm text-fg-muted">
-            You're about to join <strong className="text-fg">{team.name}</strong>. You'll get 12 fresh doughnuts to start.
+            You're about to join <strong className="text-fg">{team.name}</strong>. You'll get 12 fresh coins to start.
           </p>
           <form action={joinAction}>
             <Button type="submit">Join team</Button>

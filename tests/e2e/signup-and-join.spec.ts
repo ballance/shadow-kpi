@@ -21,11 +21,11 @@ test('founder creates a team and a second user joins via invite', async ({
   await expect(founder.getByText("You aren't on any teams yet.")).toBeVisible();
 
   await founder.getByRole('link', { name: 'Create team' }).click();
-  await founder.getByLabel('Team name').fill('Doughnut Detectives');
+  await founder.getByLabel('Team name').fill('Coin Detectives');
   await founder.getByRole('button', { name: 'Create team' }).click();
   await founder.waitForURL(/\/t\/[^/]+$/);
 
-  await expect(founder.getByText('🍩 12').first()).toBeVisible();
+  await expect(founder.getByText('🪙 12').first()).toBeVisible();
   const inviteUrl = (
     await founder
       .locator('code')
@@ -41,13 +41,13 @@ test('founder creates a team and a second user joins via invite', async ({
   await joiner.waitForURL('**/teams');
 
   await joiner.goto(inviteUrl);
-  await expect(joiner.getByRole('heading', { name: /Join Doughnut Detectives/ })).toBeVisible();
+  await expect(joiner.getByRole('heading', { name: /Join Coin Detectives/ })).toBeVisible();
   await joiner.getByRole('button', { name: 'Join team' }).click();
   await joiner.waitForURL(/\/t\/[^/]+$/);
-  await expect(joiner.getByText('🍩 12').first()).toBeVisible();
+  await expect(joiner.getByText('🪙 12').first()).toBeVisible();
 
   await joiner.goto('/teams');
-  await expect(joiner.getByRole('heading', { name: 'Doughnut Detectives' })).toBeVisible();
+  await expect(joiner.getByRole('heading', { name: 'Coin Detectives' })).toBeVisible();
 
   await founderCtx.close();
   await joinerCtx.close();

@@ -53,7 +53,7 @@ test('capture readme screenshots', async ({ browser }) => {
   await signInAs(founder, 'alex@example.com');
   await founder.waitForURL('**/teams');
   await founder.getByRole('link', { name: 'Create team' }).click();
-  await founder.getByLabel('Team name').fill('Doughnut Crew');
+  await founder.getByLabel('Team name').fill('Coin Crew');
   await founder.getByRole('button', { name: 'Create team' }).click();
   await founder.waitForURL((url) => /\/t\//.test(url.pathname) && !url.pathname.endsWith('/new'));
   const teamUrl = founder.url();

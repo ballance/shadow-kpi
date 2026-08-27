@@ -1,24 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #fafaf7;
+  /* OptionsPlayers — warm gold on cream (light) */
+  --bg: hsl(40 30% 98%);
   --surface: #ffffff;
-  --surface-elevated: #f5f5f0;
-  --border: #e7e5e0;
-  --border-strong: #d4d2cb;
-  --fg: #0a0d12;
-  --fg-muted: #475569;
-  --fg-dim: #78716c;
-  --accent: #0f766e;
-  --accent-fg: #ffffff;
-  --accent-bg: #ccfbf1;
-  --accent-border: #14b8a6;
-  --danger: #e11d48;
+  --surface-elevated: hsl(40 25% 96%);
+  --border: hsl(38 20% 88%);
+  --border-strong: hsl(38 18% 80%);
+  --fg: hsl(30 15% 12%);
+  --fg-muted: hsl(30 10% 42%);
+  --fg-dim: hsl(30 10% 55%);
+  --accent: hsl(38 45% 42%);
+  --accent-fg: hsl(40 30% 98%);
+  --accent-bg: hsl(42 55% 90%);
+  --accent-border: hsl(38 50% 55%);
+  --danger: #b91c1c;
   --danger-fg: #ffffff;
-  --danger-bg: #ffe4e6;
-  --danger-border: #fb7185;
-  --warning: #d97706;
-  --ring: #0f766e;
+  --danger-bg: #fbe4e0;
+  --danger-border: #e07a6a;
+  --warning: hsl(38 45% 42%);
+  --ring: hsl(38 45% 42%);
 
   --r-sm: 4px;
   --r-md: 6px;
@@ -28,25 +29,50 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b0d11;
-    --surface: #11151c;
-    --surface-elevated: #161a22;
-    --border: #181c23;
-    --border-strong: #1f2630;
-    --fg: #e8eef5;
-    --fg-muted: #94a3b8;
-    --fg-dim: #64748b;
-    --accent: #2dd4bf;
-    --accent-fg: #062f2a;
-    --accent-bg: #062f2a;
-    --accent-border: #14b8a6;
-    --danger: #f43f5e;
-    --danger-fg: #2a0e16;
-    --danger-bg: #2a0e16;
-    --danger-border: #fb7185;
-    --warning: #fbbf24;
-    --ring: #2dd4bf;
+    /* OptionsPlayers — gold foil on near-black warm brown (dark) */
+    --bg: hsl(30 12% 7%);
+    --surface: hsl(30 12% 10%);
+    --surface-elevated: hsl(30 12% 13%);
+    --border: hsl(30 10% 16%);
+    --border-strong: hsl(30 10% 24%);
+    --fg: hsl(40 25% 94%);
+    --fg-muted: hsl(38 15% 65%);
+    --fg-dim: hsl(38 12% 50%);
+    --accent: hsl(42 55% 62%);
+    --accent-fg: hsl(30 20% 8%);
+    --accent-bg: hsl(38 40% 16%);
+    --accent-border: hsl(42 60% 58%);
+    --danger: #e06a5a;
+    --danger-fg: #2a0e0a;
+    --danger-bg: #2a120e;
+    --danger-border: #e07a6a;
+    --warning: hsl(42 55% 62%);
+    --ring: hsl(42 55% 62%);
   }
+}
+
+/* Opt-in dark scope: forces the gold-on-black brand regardless of OS theme. */
+.force-dark {
+  --bg: hsl(30 12% 7%);
+  --surface: hsl(30 12% 10%);
+  --surface-elevated: hsl(30 12% 13%);
+  --border: hsl(30 10% 16%);
+  --border-strong: hsl(30 10% 24%);
+  --fg: hsl(40 25% 94%);
+  --fg-muted: hsl(38 15% 65%);
+  --fg-dim: hsl(38 12% 50%);
+  --accent: hsl(42 55% 62%);
+  --accent-fg: hsl(30 20% 8%);
+  --accent-bg: hsl(38 40% 16%);
+  --accent-border: hsl(42 60% 58%);
+  --danger: #e06a5a;
+  --danger-fg: #2a0e0a;
+  --danger-bg: #2a120e;
+  --danger-border: #e07a6a;
+  --warning: hsl(42 55% 62%);
+  --ring: hsl(42 55% 62%);
+  background: var(--bg);
+  color: var(--fg);
 }
 
 @theme inline {
@@ -78,8 +104,9 @@
   --radius-lg: var(--r-lg);
   --radius-pill: var(--r-pill);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-noto);
+  --font-mono: var(--font-jetbrains);
+  --font-display: var(--font-playfair);
 }
 
 body {

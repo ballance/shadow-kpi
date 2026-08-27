@@ -58,7 +58,7 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
                   <span className="text-sm text-fg truncate">{nameFromEmail(row.email)}</span>
                 </div>
                 <span className="text-sm font-mono font-semibold text-fg whitespace-nowrap">
-                  🍩 {row.balance}
+                  🪙 {row.balance}
                 </span>
               </li>
             ))}

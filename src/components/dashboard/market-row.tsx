@@ -57,10 +57,10 @@ export function MarketRow(props: MarketRowProps) {
           />
         </div>
         <div className="flex flex-col items-end gap-0.5 text-xs">
-          <span className="font-mono text-fg-muted">🍩 {total}</span>
+          <span className="font-mono text-fg-muted">🪙 {total}</span>
           {props.yourStake ? (
             <span className="text-[10px] font-semibold uppercase tracking-wide text-accent">
-              your {props.yourStake.side} 🍩 {props.yourStake.amount}
+              your {props.yourStake.side} 🪙 {props.yourStake.amount}
             </span>
           ) : null}
         </div>
@@ -81,10 +81,10 @@ export function MarketRow(props: MarketRowProps) {
             <LockCountdown lockupAt={props.market.lockupAt} />
           </div>
           <span className="text-[10px] uppercase tracking-wide font-semibold text-fg-dim">
-            your {props.yourStake.side} · 🍩 {props.yourStake.amount}
+            your {props.yourStake.side} · 🪙 {props.yourStake.amount}
           </span>
         </div>
-        <span className="text-xs font-mono text-fg-muted">pool 🍩 {total}</span>
+        <span className="text-xs font-mono text-fg-muted">pool 🪙 {total}</span>
       </Link>
     );
   }
@@ -113,9 +113,9 @@ export function MarketRow(props: MarketRowProps) {
 
   const deltaLabel = (() => {
     if (props.market.status === 'voided') return 'refund';
-    if (props.yourDelta > 0) return `+🍩 ${props.yourDelta}`;
-    if (props.yourDelta < 0) return `−🍩 ${Math.abs(props.yourDelta)}`;
-    return '🍩 0';
+    if (props.yourDelta > 0) return `+🪙 ${props.yourDelta}`;
+    if (props.yourDelta < 0) return `−🪙 ${Math.abs(props.yourDelta)}`;
+    return '🪙 0';
   })();
 
   const deltaClass =

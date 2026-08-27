@@ -267,7 +267,7 @@ describe('ledger', () => {
   });
 
   describe('grantInitialAllowance', () => {
-    it('writes a single allowance_grant for WEEKLY_ALLOWANCE doughnuts', async () => {
+    it('writes a single allowance_grant for WEEKLY_ALLOWANCE coins', async () => {
       await grantInitialAllowance(handle.db, { userId, teamId });
       const rows = await handle.db.select().from(ledgerEntries);
       expect(rows).toHaveLength(1);

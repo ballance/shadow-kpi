@@ -89,13 +89,13 @@ test('founder creates market, bettor bets, founder resolves, balance updates', a
   await expect(founder.getByTestId('locking-soon-list')).toBeVisible();
 
   await joiner.goto(marketUrl);
-  await joiner.getByLabel('Amount (🍩)').fill('3');
+  await joiner.getByLabel('Amount (🪙)').fill('3');
   await joiner.getByRole('button', { name: 'Bet Yes' }).click();
   await joiner.waitForURL(marketUrl);
   await joiner.waitForLoadState('networkidle');
 
   await joiner.goto(teamUrl);
-  await expect(joiner.getByText('🍩 9').first()).toBeVisible();
+  await expect(joiner.getByText('🪙 9').first()).toBeVisible();
 
   // Point B: joiner has placed a bet — "Your open positions" should appear
   await expect(joiner.getByText('Your open positions')).toBeVisible();
@@ -116,7 +116,7 @@ test('founder creates market, bettor bets, founder resolves, balance updates', a
   await founder.waitForLoadState('networkidle');
 
   await joiner.goto(teamUrl);
-  await expect(joiner.getByText('🍩 12').first()).toBeVisible();
+  await expect(joiner.getByText('🪙 12').first()).toBeVisible();
 
   // Point C: market resolved since joiner's last dashboard visit — "Resolved while you were away" appears
   await expect(joiner.getByText('Resolved while you were away')).toBeVisible();
