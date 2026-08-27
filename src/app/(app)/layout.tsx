@@ -18,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     kind: n.kind,
     marketId: n.marketId,
     marketTeamId: n.marketTeamId,
+    payload: n.payload,
     createdAt: n.createdAt.toISOString(),
     readAt: n.readAt ? n.readAt.toISOString() : null,
   }));

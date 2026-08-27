@@ -3,12 +3,14 @@
 import { useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ordinal } from '@/components/dashboard/current-contest-card';
 
 interface NotificationItem {
   id: string;
   kind: string;
   marketId: string | null;
   marketTeamId: string | null;
+  payload: string | null;
   createdAt: string;
   readAt: string | null;
 }
@@ -18,8 +20,8 @@ export interface NotificationBellProps {
   notifications: NotificationItem[];
 }
 
-function describe(kind: string): string {
-  switch (kind) {
+function describe(n: NotificationItem): string {
+  switch (n.kind) {
     case 'market_created':
       return 'New market';
     case 'market_locked':
@@ -30,8 +32,18 @@ function describe(kind: string): string {
       return 'Market voided';
     case 'comment_posted':
       return 'New comment';
+    case 'contest_resolved': {
+      const payload = n.payload
+        ? (JSON.parse(n.payload) as { symbol?: string; place?: number | null; prizeCoins?: number | null })
+        : null;
+      const symbol = payload?.symbol ?? 'Contest';
+      if (payload?.place != null) {
+        return `${symbol} contest resolved — you placed ${ordinal(payload.place - 1)} (+${payload.prizeCoins ?? 0} \u{1FA99})`;
+      }
+      return `${symbol} contest resolved`;
+    }
     default:
-      return kind;
+      return n.kind;
   }
 }
 
@@ -82,9 +94,11 @@ export function NotificationBell({
                 const href =
                   n.marketId && linkTeamId
                     ? `/t/${linkTeamId}/markets/${n.marketId}`
-                    : linkTeamId
-                      ? `/t/${linkTeamId}`
-                      : '/teams';
+                    : n.kind === 'contest_resolved' && linkTeamId
+                      ? `/t/${linkTeamId}/contests`
+                      : linkTeamId
+                        ? `/t/${linkTeamId}`
+                        : '/teams';
                 return (
                   <li key={n.id}>
                     <Link
@@ -94,7 +108,7 @@ export function NotificationBell({
                         n.readAt ? 'text-fg-dim' : ''
                       }`}
                     >
-                      {describe(n.kind)}
+                      {describe(n)}
                     </Link>
                   </li>
                 );

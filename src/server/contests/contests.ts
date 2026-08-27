@@ -5,6 +5,7 @@ import {
   contestGuesses,
   teamContestConfigs,
   ledgerEntries,
+  memberships,
   type PriceContest,
   type TeamContestConfig,
 } from '@/server/db/schema';
@@ -200,6 +201,17 @@ export class ContestError extends Error {
   }
 }
 
+// Cross-team IDOR guard: contests are looked up by id alone, so both
+// user-initiated entry points must confirm the caller is on the contest's
+// team before reading/minting anything further.
+async function assertMember(db: Db, userId: string, teamId: string): Promise<void> {
+  const [m] = await db
+    .select()
+    .from(memberships)
+    .where(and(eq(memberships.userId, userId), eq(memberships.teamId, teamId)));
+  if (!m) throw new ContestError('NOT_A_MEMBER');
+}
+
 export interface SubmitGuessInput {
   contestId: string;
   userId: string;
@@ -213,6 +225,7 @@ export async function submitGuess(db: Db, input: SubmitGuessInput): Promise<void
     .where(eq(priceContests.id, input.contestId))
     .limit(1);
   if (!contest) throw new ContestError('CONTEST_NOT_FOUND');
+  await assertMember(db, input.userId, contest.teamId);
   if (contest.status !== 'open' || now().getTime() >= contest.submissionsCloseAt.getTime()) {
     throw new ContestError('SUBMISSIONS_CLOSED');
   }
@@ -335,6 +348,7 @@ export async function manualResolve(db: Db, input: ManualResolveInput): Promise<
     .where(eq(priceContests.id, input.contestId))
     .limit(1);
   if (!contest) throw new ContestError('CONTEST_NOT_FOUND');
+  await assertMember(db, input.userId, contest.teamId);
   if (contest.status !== 'open' || now().getTime() < contest.resolvesAfter.getTime()) {
     throw new ContestError('NOT_RESOLVABLE_YET');
   }

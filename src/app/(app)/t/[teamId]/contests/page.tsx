@@ -36,8 +36,10 @@ export default async function ContestsPage({ params, searchParams }: ContestsPag
     listPreviousContests(db, teamId, userId),
   ]);
 
+  const previous = previousContests.filter((c) => c.contest.id !== currentContest?.contest.id);
+
   const winnerIds = Array.from(
-    new Set(previousContests.flatMap((c) => c.winners.map((w) => w.userId))),
+    new Set(previous.flatMap((c) => c.winners.map((w) => w.userId))),
   );
   const userRows =
     winnerIds.length > 0
@@ -103,12 +105,12 @@ export default async function ContestsPage({ params, searchParams }: ContestsPag
           Previous contests
         </div>
 
-        {previousContests.length === 0 ? (
+        {previous.length === 0 ? (
           <Card>
             <EmptyState title="No contests yet" description="Check back after the first one runs." />
           </Card>
         ) : (
-          previousContests.map(({ contest, winners, myResult }) => {
+          previous.map(({ contest, winners, myResult }) => {
             const prizeTiers: number[] = JSON.parse(contest.prizeTiers);
             const canManuallyResolve =
               contest.status === 'open' &&

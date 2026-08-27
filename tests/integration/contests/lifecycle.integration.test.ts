@@ -12,6 +12,8 @@ import {
   getCurrentContest,
   resolveDueContests,
   mintPrizesAndResolve,
+  manualResolve,
+  ContestError,
 } from '@/server/contests/contests';
 
 describe('contests lifecycle', () => {
@@ -107,5 +109,28 @@ describe('contests lifecycle', () => {
     expect(await getBalance(handle.db, { userId: 'a', teamId: 't1' })).toBe(25);
     expect(await getBalance(handle.db, { userId: 'b', teamId: 't1' })).toBe(15);
     expect(await getBalance(handle.db, { userId: 'c', teamId: 't1' })).toBe(10);
+  });
+
+  it('rejects a non-member on submitGuess and manualResolve (cross-team IDOR)', async () => {
+    await handle.db.insert(users).values({ id: 'outsider', email: 'outsider@example.com' });
+    // 'outsider' is intentionally not inserted into memberships for t1.
+
+    __setNowForTests(MORNING);
+    const created = await createDailyContests(handle.db, fake);
+    const contestId = created[0];
+
+    await expect(
+      submitGuess(handle.db, { contestId, userId: 'outsider', guessCents: 31700 }),
+    ).rejects.toThrow(new ContestError('NOT_A_MEMBER'));
+
+    __setNowForTests(EVENING);
+    await expect(
+      manualResolve(handle.db, { contestId, userId: 'outsider', actualCloseCents: 31700 }),
+    ).rejects.toThrow(new ContestError('NOT_A_MEMBER'));
+
+    // No guess recorded and no coins minted for the rejected outsider.
+    const current = await getCurrentContest(handle.db, 't1', 'outsider');
+    expect(current?.myGuessCents).toBeNull();
+    expect(await getBalance(handle.db, { userId: 'outsider', teamId: 't1' })).toBe(0);
   });
 });

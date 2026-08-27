@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { LockCountdown } from '@/components/dashboard/lock-countdown';
+import { ContestCountdown } from '@/components/dashboard/contest-countdown';
 import type { CurrentContest } from '@/server/contests/contests';
 
 interface CurrentContestCardProps {
@@ -29,10 +29,12 @@ export function CurrentContestCard({ data, action }: CurrentContestCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center gap-1 text-xs text-fg-muted">
-          <span>Submissions close in</span>
-          <LockCountdown lockupAt={contest.submissionsCloseAt} />
-        </div>
+        {!submissionsClosed && (
+          <div className="flex items-center gap-1 text-xs text-fg-muted">
+            <span>Submissions close in</span>
+            <ContestCountdown closeAt={contest.submissionsCloseAt} />
+          </div>
+        )}
 
         <div className="text-xs text-fg-muted">
           Prizes: {prizeTiers.map((coins, i) => `${ordinal(i)} place: ${coins} coins`).join(' · ')}
