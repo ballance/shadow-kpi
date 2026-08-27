@@ -3,7 +3,16 @@ export type DomainEvent =
   | { type: 'MarketLocked'; marketId: string; teamId: string }
   | { type: 'MarketResolved'; marketId: string; teamId: string; outcome: 'yes' | 'no' }
   | { type: 'MarketVoided'; marketId: string; teamId: string }
-  | { type: 'CommentPosted'; marketId: string; teamId: string; commenterId: string };
+  | { type: 'CommentPosted'; marketId: string; teamId: string; commenterId: string }
+  | {
+      type: 'ContestResolved';
+      contestId: string;
+      teamId: string;
+      symbol: string;
+      contestDate: string;
+      actualCloseCents: number;
+      winners: { userId: string; place: number; prizeCoins: number }[];
+    };
 
 export type EventSubscriber = (event: DomainEvent) => Promise<void>;
 
