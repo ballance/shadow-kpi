@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/server/auth';
@@ -7,6 +8,8 @@ import { teams } from '@/server/db/schema';
 import { getBalance, getSpendableAllowance } from '@/server/ledger';
 import { rotateInviteCode } from '@/server/teams';
 import { listMarketsForTeam } from '@/server/markets';
+import { getCurrentContest, submitGuess } from '@/server/contests/contests';
+import { parseDollarsToCents } from '@/server/contests/config';
 import {
   listLockingSoon,
   listOpenPositions,
@@ -21,17 +24,18 @@ import { StatusPill } from '@/components/status-pill';
 import { EmptyState } from '@/components/empty-state';
 import { DashboardSection } from '@/components/dashboard/dashboard-section';
 import { MarketRow } from '@/components/dashboard/market-row';
+import { CurrentContestCard } from '@/components/dashboard/current-contest-card';
 
 interface TeamPageProps {
   params: Promise<{ teamId: string }>;
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; guessError?: string }>;
 }
 
 const FIRST_VISIT_LOOKBACK_DAYS = 7;
 
 export default async function TeamDashboardPage({ params, searchParams }: TeamPageProps) {
   const { teamId } = await params;
-  const { status } = await searchParams;
+  const { status, guessError } = await searchParams;
   const activeTab: 'open' | 'closed' | 'all' =
     status === 'closed' || status === 'all' ? status : 'open';
   const session = await auth();
@@ -47,7 +51,7 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
     lastSeen.previous ??
     new Date(now().getTime() - FIRST_VISIT_LOOKBACK_DAYS * 24 * 60 * 60_000);
 
-  const [balance, allowance, lockingSoon, openPositions, resolvedAway, marketRows] =
+  const [balance, allowance, lockingSoon, openPositions, resolvedAway, marketRows, currentContest] =
     await Promise.all([
       getBalance(db, { userId, teamId }),
       getSpendableAllowance(db, { userId, teamId }),
@@ -55,12 +59,27 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
       listOpenPositions(db, { teamId, userId }),
       listResolvedSince(db, { teamId, userId, since: sinceForResolved }),
       listMarketsForTeam(db, teamId),
+      getCurrentContest(db, teamId, userId),
     ]);
 
   async function rotateAction() {
     'use server';
     if (!session?.user) throw new DomainError('NOT_AUTHENTICATED', 'Please sign in.');
     await rotateInviteCode(db, { teamId, userId: session.user.id });
+    revalidatePath(`/t/${teamId}`);
+  }
+
+  async function submitGuessAction(formData: FormData) {
+    'use server';
+    const guessSession = await auth();
+    if (!guessSession?.user) redirect('/signin');
+    const contestId = String(formData.get('contestId'));
+    try {
+      const guessCents = parseDollarsToCents(String(formData.get('guess')));
+      await submitGuess(db, { contestId, userId: guessSession.user.id, guessCents });
+    } catch {
+      redirect(`/t/${teamId}?guessError=1`);
+    }
     revalidatePath(`/t/${teamId}`);
   }
 
@@ -117,6 +136,14 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
           </CardContent>
         </Card>
       </div>
+
+      {guessError && (
+        <div className="rounded-md border border-danger-border bg-danger-bg px-3 py-2 text-sm text-danger">
+          Couldn&apos;t save your guess. Enter a valid dollar amount.
+        </div>
+      )}
+
+      {currentContest && <CurrentContestCard data={currentContest} action={submitGuessAction} />}
 
       {lockingSoon.length > 0 && (
         <DashboardSection title="Locking soon" hint="Place a stake before the window closes.">
