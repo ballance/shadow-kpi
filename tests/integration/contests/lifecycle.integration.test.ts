@@ -11,6 +11,7 @@ import {
   submitGuess,
   getCurrentContest,
   resolveDueContests,
+  mintPrizesAndResolve,
 } from '@/server/contests/contests';
 
 describe('contests lifecycle', () => {
@@ -92,9 +93,17 @@ describe('contests lifecycle', () => {
 
     __setNowForTests(EVENING);
     fake.setClose('AAPL', '2026-08-19', 31683);
+    // First resolve mints prizes. Second is a no-op via the outer status='open' filter.
     await resolveDueContests(handle.db, fake);
     await resolveDueContests(handle.db, fake);
 
+    expect(await getBalance(handle.db, { userId: 'a', teamId: 't1' })).toBe(25);
+    expect(await getBalance(handle.db, { userId: 'b', teamId: 't1' })).toBe(15);
+    expect(await getBalance(handle.db, { userId: 'c', teamId: 't1' })).toBe(10);
+
+    // Directly re-invoke mintPrizesAndResolve on the already-resolved contest to
+    // exercise its FOR UPDATE + status re-check guard (the double-mint guard proper).
+    await mintPrizesAndResolve(handle.db, contestId, 31683, 'api', null);
     expect(await getBalance(handle.db, { userId: 'a', teamId: 't1' })).toBe(25);
     expect(await getBalance(handle.db, { userId: 'b', teamId: 't1' })).toBe(15);
     expect(await getBalance(handle.db, { userId: 'c', teamId: 't1' })).toBe(10);

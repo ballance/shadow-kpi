@@ -89,6 +89,8 @@ export async function createDailyContests(
     if (existing.length > 0) continue;
 
     const symbol = pickSymbol(symbols, cfg.rotationCursor);
+    // onConflictDoNothing closes the check-then-insert race (cron overlap): a
+    // concurrent insert wins the unique index and we get no returned row.
     const [row] = await db
       .insert(priceContests)
       .values({
@@ -99,10 +101,12 @@ export async function createDailyContests(
         resolvesAfter: etTimestamp(today, 16, 15),
         prizeTiers: cfg.prizeTiers,
       })
+      .onConflictDoNothing()
       .returning({ id: priceContests.id });
+    if (!row) continue; // already created by a concurrent run — don't advance cursor
     await db
       .update(teamContestConfigs)
-      .set({ rotationCursor: cfg.rotationCursor + 1 })
+      .set({ rotationCursor: sql`rotation_cursor + 1` })
       .where(eq(teamContestConfigs.teamId, cfg.teamId));
     created.push(row.id);
   }
@@ -224,7 +228,9 @@ export async function submitGuess(db: Db, input: SubmitGuessInput): Promise<void
 
 // ─── Task 9: resolution, prize minting, manual fallback ───────────────────
 
-async function mintPrizesAndResolve(
+// Exported for the double-mint idempotency test — call sites should prefer
+// resolveDueContests/manualResolve.
+export async function mintPrizesAndResolve(
   db: Db,
   contestId: string,
   actualCloseCents: number,
