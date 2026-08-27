@@ -1,6 +1,13 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from '@/server/db/client';
-import { bets, memberships, notifications, markets, type Notification } from '@/server/db/schema';
+import {
+  bets,
+  memberships,
+  notifications,
+  markets,
+  contestGuesses,
+  type Notification,
+} from '@/server/db/schema';
 import type { DomainEvent } from '@/server/events';
 
 export async function inAppNotificationSubscriber(
@@ -58,6 +65,32 @@ export async function inAppNotificationSubscriber(
           marketId: event.marketId,
           payload: JSON.stringify({ outcome: event.outcome }),
         })),
+      );
+      return;
+    }
+    case 'ContestResolved': {
+      const guesses = await db
+        .select({ userId: contestGuesses.userId })
+        .from(contestGuesses)
+        .where(eq(contestGuesses.contestId, event.contestId));
+      const participants = Array.from(new Set(guesses.map((g) => g.userId)));
+      if (participants.length === 0) return;
+      const winnersByUser = new Map(event.winners.map((w) => [w.userId, w]));
+      await db.insert(notifications).values(
+        participants.map((userId) => {
+          const win = winnersByUser.get(userId);
+          return {
+            userId,
+            kind: 'contest_resolved',
+            payload: JSON.stringify({
+              symbol: event.symbol,
+              contestDate: event.contestDate,
+              actualCloseCents: event.actualCloseCents,
+              place: win?.place ?? null,
+              prizeCoins: win?.prizeCoins ?? null,
+            }),
+          };
+        }),
       );
       return;
     }

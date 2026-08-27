@@ -181,6 +181,37 @@ export function marketVoidedDm(p: {
   };
 }
 
+export function contestResolvedBlocks(p: {
+  symbol: string;
+  contestDate: string;
+  actualCloseCents: number;
+  winners: { userId: string; place: number; prizeCoins: number }[];
+}): SlackMessage {
+  const closeDisplay = (p.actualCloseCents / 100).toFixed(2);
+  const text = `📈 ${p.symbol} closed at $${closeDisplay} on ${p.contestDate}`;
+  const ranked = [...p.winners].sort((a, b) => a.place - b.place);
+  const winnerLines = ranked
+    .map((w) => `${w.place}${placeSuffix(w.place)} place — ${w.prizeCoins} 🪙`)
+    .join('\n');
+  return {
+    text,
+    blocks: [
+      section(`*📈 ${p.symbol}* closed at $${closeDisplay} on ${p.contestDate}`),
+      ...(winnerLines ? [contextLine(winnerLines)] : []),
+    ],
+  };
+}
+
+function placeSuffix(place: number): string {
+  if (place % 100 >= 11 && place % 100 <= 13) return 'th';
+  switch (place % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
 export function plainTextMessage(text: string): SlackMessage {
   return { text, blocks: [section(text)] };
 }

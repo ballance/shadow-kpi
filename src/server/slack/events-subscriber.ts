@@ -10,7 +10,7 @@ import type { SlackApiClient } from './api';
 import {
   marketCreatedChannel, marketLockedChannel, marketLockedDm,
   marketResolvedChannel, marketResolvedDmWinner, marketResolvedDmLoser,
-  marketVoidedDm,
+  marketVoidedDm, contestResolvedBlocks,
 } from './blocks';
 
 export interface SubscriberConfig {
@@ -332,6 +332,26 @@ export function slackOutboxSubscriber(db: Db, cfg: SubscriberConfig) {
           });
         }
         await enqueueOutboxMessages(db, messages);
+        triggerInlineDrain(db, cfg);
+        return;
+      }
+      case 'ContestResolved': {
+        const ctx = await loadTeamContext(db, event.teamId, []);
+        if (!ctx?.channelMapping) return;
+        await enqueueOutboxMessages(db, [
+          {
+            workspaceId: ctx.channelMapping.workspaceId,
+            targetKind: 'channel',
+            targetId: ctx.channelMapping.channelId,
+            payload: contestResolvedBlocks({
+              symbol: event.symbol,
+              contestDate: event.contestDate,
+              actualCloseCents: event.actualCloseCents,
+              winners: event.winners,
+            }),
+            dedupKey: `ContestResolved:${event.contestId}:channel`,
+          },
+        ]);
         triggerInlineDrain(db, cfg);
         return;
       }
