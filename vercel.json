@@ -11,6 +11,14 @@
     {
       "path": "/api/cron/slack-drain",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/contest-open",
+      "schedule": "0 13 * * 1-5"
+    },
+    {
+      "path": "/api/cron/contest-resolve",
+      "schedule": "0 22 * * 1-5"
     }
   ]
 }
