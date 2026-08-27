@@ -1,12 +1,15 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { Db } from '@/server/db/client';
 import {
   priceContests,
+  contestGuesses,
   teamContestConfigs,
+  type PriceContest,
   type TeamContestConfig,
 } from '@/server/db/schema';
 import { now, etDateString, etTimestamp } from '@/server/time';
 import { getPriceProvider } from '@/server/prices/provider';
+import { rankGuesses, type Winner } from '@/server/contests/scoring';
 import { pickSymbol } from '@/server/contests/config';
 
 // ─── Task 7: config accessors + daily contest creation ───────────────────
@@ -100,4 +103,117 @@ export async function createDailyContests(
     created.push(row.id);
   }
   return created;
+}
+
+// ─── Task 8: reads + guess submission ─────────────────────────────────────
+
+export interface CurrentContest {
+  contest: PriceContest;
+  myGuessCents: number | null;
+  submissionsClosed: boolean;
+}
+
+export async function getCurrentContest(
+  db: Db,
+  teamId: string,
+  userId: string,
+): Promise<CurrentContest | null> {
+  const [contest] = await db
+    .select()
+    .from(priceContests)
+    .where(and(eq(priceContests.teamId, teamId), eq(priceContests.status, 'open')))
+    .orderBy(desc(priceContests.contestDate))
+    .limit(1);
+  if (!contest) return null;
+
+  const [guess] = await db
+    .select({ guessCents: contestGuesses.guessCents })
+    .from(contestGuesses)
+    .where(and(eq(contestGuesses.contestId, contest.id), eq(contestGuesses.userId, userId)));
+
+  return {
+    contest,
+    myGuessCents: guess?.guessCents ?? null,
+    submissionsClosed: now().getTime() >= contest.submissionsCloseAt.getTime(),
+  };
+}
+
+export interface ContestSummary {
+  contest: PriceContest;
+  winners: Winner[];
+  myResult: { guessCents: number; place: number | null } | null;
+}
+
+export async function listPreviousContests(
+  db: Db,
+  teamId: string,
+  userId: string,
+  limit = 20,
+): Promise<ContestSummary[]> {
+  const contests = await db
+    .select()
+    .from(priceContests)
+    .where(eq(priceContests.teamId, teamId))
+    .orderBy(desc(priceContests.contestDate))
+    .limit(limit);
+
+  const out: ContestSummary[] = [];
+  for (const contest of contests) {
+    const guesses = await db
+      .select()
+      .from(contestGuesses)
+      .where(eq(contestGuesses.contestId, contest.id));
+    const myGuess = guesses.find((g) => g.userId === userId) ?? null;
+
+    if (contest.status === 'resolved' && contest.actualCloseCents !== null) {
+      const prizeTiers: number[] = JSON.parse(contest.prizeTiers);
+      const winners = rankGuesses(
+        guesses.map((g) => ({ userId: g.userId, guessCents: g.guessCents, createdAt: g.createdAt })),
+        contest.actualCloseCents,
+        prizeTiers,
+      );
+      const myWin = winners.find((w) => w.userId === userId) ?? null;
+      out.push({
+        contest,
+        winners,
+        myResult: myGuess ? { guessCents: myGuess.guessCents, place: myWin?.place ?? null } : null,
+      });
+    } else {
+      out.push({ contest, winners: [], myResult: null });
+    }
+  }
+  return out;
+}
+
+export class ContestError extends Error {
+  constructor(public readonly code: string) {
+    super(code);
+    this.name = 'ContestError';
+  }
+}
+
+export interface SubmitGuessInput {
+  contestId: string;
+  userId: string;
+  guessCents: number;
+}
+
+export async function submitGuess(db: Db, input: SubmitGuessInput): Promise<void> {
+  const [contest] = await db
+    .select()
+    .from(priceContests)
+    .where(eq(priceContests.id, input.contestId))
+    .limit(1);
+  if (!contest) throw new ContestError('CONTEST_NOT_FOUND');
+  if (contest.status !== 'open' || now().getTime() >= contest.submissionsCloseAt.getTime()) {
+    throw new ContestError('SUBMISSIONS_CLOSED');
+  }
+
+  await db
+    .insert(contestGuesses)
+    .values({ contestId: input.contestId, userId: input.userId, guessCents: input.guessCents })
+    .onConflictDoUpdate({
+      target: [contestGuesses.contestId, contestGuesses.userId],
+      set: { guessCents: input.guessCents, updatedAt: now() },
+    });
 }
