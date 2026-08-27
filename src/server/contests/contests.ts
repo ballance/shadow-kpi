@@ -1,9 +1,10 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, lte, sql } from 'drizzle-orm';
 import type { Db } from '@/server/db/client';
 import {
   priceContests,
   contestGuesses,
   teamContestConfigs,
+  ledgerEntries,
   type PriceContest,
   type TeamContestConfig,
 } from '@/server/db/schema';
@@ -11,6 +12,9 @@ import { now, etDateString, etTimestamp } from '@/server/time';
 import { getPriceProvider } from '@/server/prices/provider';
 import { rankGuesses, type Winner } from '@/server/contests/scoring';
 import { pickSymbol } from '@/server/contests/config';
+import { eventBus } from '@/server/events';
+
+const VOID_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
 
 // ─── Task 7: config accessors + daily contest creation ───────────────────
 
@@ -216,4 +220,117 @@ export async function submitGuess(db: Db, input: SubmitGuessInput): Promise<void
       target: [contestGuesses.contestId, contestGuesses.userId],
       set: { guessCents: input.guessCents, updatedAt: now() },
     });
+}
+
+// ─── Task 9: resolution, prize minting, manual fallback ───────────────────
+
+async function mintPrizesAndResolve(
+  db: Db,
+  contestId: string,
+  actualCloseCents: number,
+  source: 'api' | 'manual',
+  resolvedBy: string | null,
+): Promise<void> {
+  const result = await db.transaction(async (tx) => {
+    const lockResult = await tx.execute(
+      sql`SELECT id FROM price_contest WHERE id = ${contestId} FOR UPDATE`,
+    );
+    const lockRows = lockResult as unknown as Array<{ id: string }>;
+    if (lockRows.length === 0) return null;
+
+    const [contest] = await tx
+      .select()
+      .from(priceContests)
+      .where(eq(priceContests.id, contestId))
+      .limit(1);
+    // Already resolved/voided — no-op so resolveDueContests/manualResolve can retry safely.
+    if (!contest || contest.status !== 'open') return null;
+
+    const guesses = await tx
+      .select()
+      .from(contestGuesses)
+      .where(eq(contestGuesses.contestId, contestId));
+    const prizeTiers: number[] = JSON.parse(contest.prizeTiers);
+    const winners = rankGuesses(
+      guesses.map((g) => ({ userId: g.userId, guessCents: g.guessCents, createdAt: g.createdAt })),
+      actualCloseCents,
+      prizeTiers,
+    );
+
+    for (const w of winners) {
+      await tx.insert(ledgerEntries).values({
+        teamId: contest.teamId,
+        userId: w.userId,
+        amount: w.prizeCoins,
+        kind: 'contest_prize',
+        contestId: contest.id,
+      });
+    }
+
+    await tx
+      .update(priceContests)
+      .set({
+        status: 'resolved',
+        actualCloseCents,
+        resolutionSource: source,
+        resolvedBy,
+        resolvedAt: now(),
+      })
+      .where(eq(priceContests.id, contestId));
+
+    return { contest, winners };
+  });
+
+  if (!result) return;
+  await eventBus.emit({
+    type: 'ContestResolved',
+    contestId: result.contest.id,
+    teamId: result.contest.teamId,
+    symbol: result.contest.symbol,
+    contestDate: result.contest.contestDate,
+    actualCloseCents,
+    winners: result.winners.map((w) => ({ userId: w.userId, place: w.place, prizeCoins: w.prizeCoins })),
+  });
+}
+
+export async function resolveDueContests(db: Db, provider = getPriceProvider()): Promise<void> {
+  const due = await db
+    .select()
+    .from(priceContests)
+    .where(and(eq(priceContests.status, 'open'), lte(priceContests.resolvesAfter, now())));
+
+  for (const contest of due) {
+    const res = await provider.getDailyClose(contest.symbol, contest.contestDate);
+    if ('closeCents' in res) {
+      await mintPrizesAndResolve(db, contest.id, res.closeCents, 'api', null);
+      continue;
+    }
+    const contestDateStart = etTimestamp(contest.contestDate, 0, 0);
+    if (now().getTime() - contestDateStart.getTime() > VOID_AFTER_MS) {
+      await db
+        .update(priceContests)
+        .set({ status: 'voided', resolvedAt: now() })
+        .where(eq(priceContests.id, contest.id));
+    }
+    // else: no close price yet — leave open, resolveDueContests will retry later.
+  }
+}
+
+export interface ManualResolveInput {
+  contestId: string;
+  userId: string;
+  actualCloseCents: number;
+}
+
+export async function manualResolve(db: Db, input: ManualResolveInput): Promise<void> {
+  const [contest] = await db
+    .select()
+    .from(priceContests)
+    .where(eq(priceContests.id, input.contestId))
+    .limit(1);
+  if (!contest) throw new ContestError('CONTEST_NOT_FOUND');
+  if (contest.status !== 'open' || now().getTime() < contest.resolvesAfter.getTime()) {
+    throw new ContestError('NOT_RESOLVABLE_YET');
+  }
+  await mintPrizesAndResolve(db, contest.id, input.actualCloseCents, 'manual', input.userId);
 }
