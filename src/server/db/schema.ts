@@ -3,6 +3,8 @@ import {
   text,
   timestamp,
   integer,
+  boolean,
+  date,
   primaryKey,
   uniqueIndex,
   index,
@@ -172,6 +174,71 @@ export const comments = pgTable(
   }),
 );
 
+// NEW in Plan 5: price contest
+export const teamContestConfigs = pgTable('team_contest_config', {
+  teamId: text('team_id')
+    .primaryKey()
+    .references(() => teams.id, { onDelete: 'cascade' }),
+  enabled: boolean('enabled').notNull().default(false),
+  symbols: text('symbols').notNull().default('[]'), // JSON string[] (uppercase)
+  prizeTiers: text('prize_tiers').notNull().default('[25,15,10]'), // JSON number[]
+  rotationCursor: integer('rotation_cursor').notNull().default(0),
+});
+
+export const priceContests = pgTable(
+  'price_contest',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    teamId: text('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    symbol: text('symbol').notNull(),
+    contestDate: date('contest_date').notNull(),
+    submissionsCloseAt: timestamp('submissions_close_at').notNull(),
+    resolvesAfter: timestamp('resolves_after').notNull(),
+    status: text('status', { enum: ['open', 'resolved', 'voided'] })
+      .notNull()
+      .default('open'),
+    actualCloseCents: integer('actual_close_cents'),
+    prizeTiers: text('prize_tiers').notNull(), // JSON number[] snapshot
+    resolutionSource: text('resolution_source', { enum: ['api', 'manual'] }),
+    resolvedBy: text('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    resolvedAt: timestamp('resolved_at'),
+  },
+  (t) => ({
+    uniqTeamDateSymbol: uniqueIndex('price_contest_team_date_symbol_idx').on(
+      t.teamId,
+      t.contestDate,
+      t.symbol,
+    ),
+    teamStatusDateIdx: index('price_contest_team_status_date_idx').on(
+      t.teamId,
+      t.status,
+      t.contestDate,
+    ),
+  }),
+);
+
+export const contestGuesses = pgTable(
+  'contest_guess',
+  {
+    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    contestId: text('contest_id')
+      .notNull()
+      .references(() => priceContests.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    guessCents: integer('guess_cents').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqContestUser: uniqueIndex('contest_guess_contest_user_idx').on(t.contestId, t.userId),
+  }),
+);
+
 // MODIFIED in Plan 2: ledger_entry now has FK refs on market_id and bet_id
 export const ledgerEntries = pgTable(
   'ledger_entry',
@@ -185,10 +252,18 @@ export const ledgerEntries = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     amount: integer('amount').notNull(),
     kind: text('kind', {
-      enum: ['allowance_grant', 'allowance_evaporate', 'stake', 'payout', 'refund'],
+      enum: [
+        'allowance_grant',
+        'allowance_evaporate',
+        'stake',
+        'payout',
+        'refund',
+        'contest_prize',
+      ],
     }).notNull(),
     marketId: text('market_id').references(() => markets.id, { onDelete: 'set null' }),
     betId: text('bet_id').references(() => bets.id, { onDelete: 'set null' }),
+    contestId: text('contest_id').references(() => priceContests.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (l) => ({
@@ -205,6 +280,11 @@ export type Team = typeof teams.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;
 export type Market = typeof markets.$inferSelect;
 export type NewMarket = typeof markets.$inferInsert;
+export type TeamContestConfig = typeof teamContestConfigs.$inferSelect;
+export type PriceContest = typeof priceContests.$inferSelect;
+export type NewPriceContest = typeof priceContests.$inferInsert;
+export type ContestGuess = typeof contestGuesses.$inferSelect;
+export type NewContestGuess = typeof contestGuesses.$inferInsert;
 export type Bet = typeof bets.$inferSelect;
 export type NewBet = typeof bets.$inferInsert;
 export type LedgerEntry = typeof ledgerEntries.$inferSelect;
