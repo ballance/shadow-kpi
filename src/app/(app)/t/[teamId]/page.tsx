@@ -109,6 +109,9 @@ export default async function TeamDashboardPage({ params, searchParams }: TeamPa
           <Button asChild variant="outline" size="sm">
             <Link href={`/t/${teamId}/leaderboard`}>Leaderboard</Link>
           </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/t/${teamId}/contests`}>Contests</Link>
+          </Button>
         </div>
       </div>
 

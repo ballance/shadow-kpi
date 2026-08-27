@@ -12,7 +12,7 @@ interface CurrentContestCardProps {
 
 const ORDINALS = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
 
-function ordinal(i: number): string {
+export function ordinal(i: number): string {
   return ORDINALS[i] ?? `${i + 1}th`;
 }
 
