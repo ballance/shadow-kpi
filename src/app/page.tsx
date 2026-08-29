@@ -19,7 +19,7 @@ export default function LandingPage() {
           Platform and Trading Community.
         </p>
         <p className="text-base text-fg-dim">
-          Bet coins on what happens at work.
+          Bet against other traders.
         </p>
         <Button asChild size="default">
           <Link href="/signin">Sign in</Link>

@@ -2,7 +2,7 @@
 
 # 🪙 OptionsPlayers
 
-**Bet coins on what happens at work.**
+**Bet against other traders.**
 
 [![CI](https://github.com/ballance/OptionsPlayers/actions/workflows/ci.yml/badge.svg)](https://github.com/ballance/OptionsPlayers/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2dd4bf.svg)](LICENSE)
