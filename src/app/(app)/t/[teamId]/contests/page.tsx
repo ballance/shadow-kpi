@@ -87,9 +87,14 @@ export default async function ContestsPage({ params, searchParams }: ContestsPag
           <div className="text-xs uppercase tracking-wide text-fg-dim font-semibold">Team</div>
           <h1 className="text-2xl font-bold tracking-tight text-fg">Contests</h1>
         </div>
-        <Link href={`/t/${teamId}`} className="text-xs text-fg-muted hover:text-fg w-fit">
-          ← Back to dashboard
-        </Link>
+        <div className="flex items-center gap-3">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/t/${teamId}/settings/contest`}>Settings</Link>
+          </Button>
+          <Link href={`/t/${teamId}`} className="text-xs text-fg-muted hover:text-fg w-fit">
+            ← Back to dashboard
+          </Link>
+        </div>
       </div>
 
       {error && (
