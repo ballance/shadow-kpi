@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/server/auth';
@@ -44,6 +45,16 @@ export default async function ContestSettingsPage({ params, searchParams }: Cont
 
   return (
     <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-fg-dim font-semibold">Settings</div>
+          <h1 className="text-2xl font-bold tracking-tight text-fg">Contests</h1>
+        </div>
+        <Link href={`/t/${teamId}/contests`} className="text-xs text-fg-muted hover:text-fg w-fit">
+          ← Back to Contests
+        </Link>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Daily price contest</CardTitle>
