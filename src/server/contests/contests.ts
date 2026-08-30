@@ -98,7 +98,7 @@ export async function createDailyContests(
         teamId: cfg.teamId,
         symbol,
         contestDate: today,
-        submissionsCloseAt: etTimestamp(today, 12, 0),
+        submissionsCloseAt: etTimestamp(today, 9, 30),
         resolvesAfter: etTimestamp(today, 16, 15),
         prizeTiers: cfg.prizeTiers,
       })
